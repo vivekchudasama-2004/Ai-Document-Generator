@@ -2,9 +2,11 @@
 TIDB_URL (health reports db:false) and data endpoints answer 503."""
 from collections.abc import Generator
 
-from fastapi import HTTPException
 from sqlalchemy import create_engine
 from sqlalchemy.orm import DeclarativeBase, sessionmaker
+
+from app.core import error_codes as CODES
+from app.core.errors import fail
 
 from app.core.config import get_settings
 
@@ -50,7 +52,7 @@ engine, SessionLocal = _build()
 
 def get_db() -> Generator:
     if SessionLocal is None:
-        raise HTTPException(status_code=503, detail="DB not configured (set TIDB_URL)")
+        fail(503, CODES.DB_NOT_CONFIGURED)
     db = SessionLocal()
     try:
         yield db

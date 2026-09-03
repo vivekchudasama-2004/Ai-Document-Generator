@@ -44,6 +44,14 @@ GENERATE_FALLBACK_CHAIN = [
 ]
 
 
+class ModelNotAllowed(ValueError):
+    """Raised by resolve_model; carries the rejected id for messages."""
+
+    def __init__(self, model: str):
+        super().__init__(f"Model not allowed: {model}")
+        self.model = model
+
+
 def list_models() -> list[dict]:
     allowed = set(get_settings().allowed_models)
     return [
@@ -63,7 +71,7 @@ def resolve_model(role: str, override: str | None) -> str:
     s = get_settings()
     if override:
         if override not in s.allowed_models:
-            raise ValueError(f"Model not allowed: {override}")
+            raise ModelNotAllowed(override)
         return override
     return s.DEFAULT_GENERATION_MODEL if role == "generate" else s.DEFAULT_HUMANIZE_MODEL
 

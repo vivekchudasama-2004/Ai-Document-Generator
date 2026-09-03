@@ -1,4 +1,8 @@
-/* Typed fetch wrapper: httpOnly cookie (credentials:include) + Bearer fallback. */
+/* Typed fetch wrapper: httpOnly cookie (credentials:include) + Bearer fallback.
+   Understands the API envelope { detail: { code, message } } and surfaces
+   humanized copy; offline and stream failures get client-side messages. */
+import { FALLBACK_ERROR, OFFLINE_ERROR, STREAM_ERROR, labelForCode } from "@/lib/messages";
+
 const BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
 let memToken: string | null = null;
@@ -8,36 +12,70 @@ export function setToken(t: string | null) {
 
 export class ApiError extends Error {
   status: number;
-  constructor(status: number, message: string) {
+  code?: string;
+  constructor(status: number, message: string, code?: string) {
     super(message);
     this.status = status;
+    this.code = code;
+  }
+}
+
+type Envelope = { detail?: { code?: string; message?: string } | string | unknown[] };
+
+async function parseError(res: Response): Promise<ApiError> {
+  let code: string | undefined;
+  let message: string | undefined;
+  try {
+    const body = (await res.json()) as Envelope;
+    const detail = body?.detail;
+    if (detail && typeof detail === "object" && !Array.isArray(detail)) {
+      code = detail.code;
+      message = detail.message;
+    } else if (Array.isArray(detail) && detail.length) {
+      // Pydantic validation shape: surface the first problem plainly.
+      const first = detail[0] as { loc?: (string | number)[]; msg?: string };
+      const field = first.loc?.slice(-1)[0];
+      message = field ? `${field}: ${first.msg ?? "invalid value"}` : (first.msg ?? FALLBACK_ERROR);
+    } else if (typeof detail === "string") {
+      message = detail;
+    }
+  } catch {
+    /* non-JSON error body */
+  }
+  return new ApiError(res.status, message ?? labelForCode(code), code);
+}
+
+function authHeaders(extra?: Record<string, string>): Record<string, string> {
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    ...(extra ?? {}),
+  };
+  if (memToken) headers["Authorization"] = `Bearer ${memToken}`;
+  return headers;
+}
+
+function redirectToLogin(path: string) {
+  if (typeof window !== "undefined" && !path.startsWith("/auth/")) {
+    window.location.href = "/login";
   }
 }
 
 export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
-  const headers: Record<string, string> = {
-    "Content-Type": "application/json",
-    ...((init.headers as Record<string, string>) ?? {}),
-  };
-  if (memToken) headers["Authorization"] = `Bearer ${memToken}`;
-  const res = await fetch(`${BASE}${path}`, {
-    ...init,
-    headers,
-    credentials: "include",
-  });
-  if (res.status === 401 && typeof window !== "undefined" && !path.startsWith("/auth/")) {
-    window.location.href = "/login";
-    throw new ApiError(401, "Not authenticated");
+  let res: Response;
+  try {
+    res = await fetch(`${BASE}${path}`, {
+      ...init,
+      headers: authHeaders(init.headers as Record<string, string> | undefined),
+      credentials: "include",
+    });
+  } catch {
+    throw new ApiError(0, OFFLINE_ERROR, "OFFLINE");
   }
-  if (!res.ok) {
-    let detail = res.statusText;
-    try {
-      detail = (await res.json()).detail ?? detail;
-    } catch {
-      /* keep statusText */
-    }
-    throw new ApiError(res.status, typeof detail === "string" ? detail : JSON.stringify(detail));
+  if (res.status === 401) {
+    redirectToLogin(path);
+    throw await parseError(res);
   }
+  if (!res.ok) throw await parseError(res);
   if (res.status === 204) return undefined as T;
   return (await res.json()) as T;
 }
@@ -47,15 +85,25 @@ export async function apiStream(
   body: unknown,
   onEvent: (event: string, data: Record<string, unknown>) => void,
 ): Promise<void> {
-  const headers: Record<string, string> = { "Content-Type": "application/json" };
-  if (memToken) headers["Authorization"] = `Bearer ${memToken}`;
-  const res = await fetch(`${BASE}${path}`, {
-    method: "POST",
-    headers,
-    credentials: "include",
-    body: JSON.stringify(body),
-  });
-  if (!res.ok || !res.body) throw new ApiError(res.status, "Stream failed");
+  let res: Response;
+  try {
+    res = await fetch(`${BASE}${path}`, {
+      method: "POST",
+      headers: authHeaders(),
+      credentials: "include",
+      body: JSON.stringify(body),
+    });
+  } catch {
+    throw new ApiError(0, OFFLINE_ERROR, "OFFLINE");
+  }
+  if (res.status === 401) {
+    redirectToLogin(path);
+    throw await parseError(res);
+  }
+  if (!res.ok || !res.body) {
+    if (!res.body && res.ok) throw new ApiError(res.status, STREAM_ERROR, "STREAM_EMPTY");
+    throw await parseError(res);
+  }
   const reader = res.body.getReader();
   const decoder = new TextDecoder();
   let buf = "";

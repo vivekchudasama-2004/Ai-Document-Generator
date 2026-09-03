@@ -40,7 +40,7 @@ class Settings(BaseSettings):
     HF_TOKEN: str = ""
     LOG_LEVEL: str = "info"
     CORS_ORIGINS: str = "http://localhost:3000"
-    APP_VERSION: str = "1.4.0"
+    APP_VERSION: str = "1.5.0"
 
     @property
     def allowed_models(self) -> list[str]:

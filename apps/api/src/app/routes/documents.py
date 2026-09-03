@@ -1,14 +1,18 @@
 import json
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
+
+from app.core import error_codes as CODES
+from app.core.errors import fail
 
 from app.core.security import get_current_user
 from app.db.client import get_db
 from app.entities.document import Version
 from app.repositories import document_repo, project_repo
 from app.services.detector import score_text
+from app.services.llm.models import ModelNotAllowed
 
 router = APIRouter(tags=["documents"])
 
@@ -44,8 +48,8 @@ def create_draft(body: dict, user=Depends(get_current_user), db: Session = Depen
     try:
         gen = resolve_model("generate", body.get("generation_model"))
         hum = resolve_model("humanize", body.get("humanize_model"))
-    except ValueError as exc:
-        raise HTTPException(status_code=422, detail=str(exc))
+    except ModelNotAllowed as exc:
+        fail(422, CODES.MODEL_NOT_ALLOWED, model=exc.model)
     row = document_repo.create(
         db, project_id=str(project_id) if project_id else str(user.id),
         user_id=str(user.id), type=body.get("doc_type", "rdd"),
@@ -78,7 +82,7 @@ def get_doc(
 ):
     row = document_repo.get_owned(db, user_id=str(user.id), document_id=str(document_id))
     if not row:
-        raise HTTPException(status_code=404, detail="Not found")
+        fail(404, CODES.DOC_NOT_FOUND)
     sections = document_repo.get_sections(db, str(document_id))
     if from_section:
         ids = [s.id for s in sections]
@@ -94,7 +98,7 @@ def update_doc(
 ):
     row = document_repo.get_owned(db, user_id=str(user.id), document_id=str(document_id))
     if not row:
-        raise HTTPException(status_code=404, detail="Not found")
+        fail(404, CODES.DOC_NOT_FOUND)
     for field in ("title", "tone", "depth"):
         if body.get(field):
             setattr(row, field, body[field])
@@ -106,7 +110,7 @@ def update_doc(
 def delete_doc(document_id: UUID, user=Depends(get_current_user), db: Session = Depends(get_db)):
     row = document_repo.get_owned(db, user_id=str(user.id), document_id=str(document_id))
     if not row:
-        raise HTTPException(status_code=404, detail="Not found")
+        fail(404, CODES.DOC_NOT_FOUND)
     document_repo.delete(db, row)
     return {"deleted": True}
 
@@ -115,7 +119,7 @@ def delete_doc(document_id: UUID, user=Depends(get_current_user), db: Session = 
 def list_versions(document_id: UUID, user=Depends(get_current_user), db: Session = Depends(get_db)):
     row = document_repo.get_owned(db, user_id=str(user.id), document_id=str(document_id))
     if not row:
-        raise HTTPException(status_code=404, detail="Not found")
+        fail(404, CODES.DOC_NOT_FOUND)
     versions = (
         db.query(Version)
         .filter(Version.document_id == str(document_id))
@@ -129,7 +133,7 @@ def list_versions(document_id: UUID, user=Depends(get_current_user), db: Session
 def duplicate(document_id: UUID, user=Depends(get_current_user), db: Session = Depends(get_db)):
     row = document_repo.get_owned(db, user_id=str(user.id), document_id=str(document_id))
     if not row:
-        raise HTTPException(status_code=404, detail="Not found")
+        fail(404, CODES.DOC_NOT_FOUND)
     sections = document_repo.get_sections(db, str(document_id))
     clone = document_repo.create(
         db, project_id=row.project_id, user_id=str(user.id), type=row.type,
@@ -152,14 +156,14 @@ def restore(
 ):
     row = document_repo.get_owned(db, user_id=str(user.id), document_id=str(document_id))
     if not row:
-        raise HTTPException(status_code=404, detail="Not found")
+        fail(404, CODES.DOC_NOT_FOUND)
     version = (
         db.query(Version)
         .filter(Version.document_id == str(document_id), Version.version_no == version_no)
         .first()
     )
     if not version:
-        raise HTTPException(status_code=404, detail="Version not found")
+        fail(404, CODES.VERSION_NOT_FOUND)
     for s in document_repo.get_sections(db, str(document_id)):
         db.delete(s)
     snapshot = json.loads(version.snapshot_json)

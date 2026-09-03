@@ -1,8 +1,11 @@
 import re
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
+
+from app.core import error_codes as CODES
+from app.core.errors import fail
 
 from app.core.security import get_current_user
 from app.db.client import get_db
@@ -21,7 +24,7 @@ def _slug(title: str, project_id: str) -> str:
 def create_project(body: dict, user=Depends(get_current_user), db: Session = Depends(get_db)):
     title = (body.get("title") or "").strip()
     if not title:
-        raise HTTPException(status_code=422, detail="title required")
+        fail(422, CODES.PROJECT_TITLE_REQUIRED)
     row = project_repo.create(
         db, user_id=str(user.id), title=title, idea=body.get("idea"), slug=None
     )
@@ -49,7 +52,7 @@ def list_projects(
 def get_project(project_id: UUID, user=Depends(get_current_user), db: Session = Depends(get_db)):
     row = project_repo.get_owned(db, user_id=str(user.id), project_id=str(project_id))
     if not row:
-        raise HTTPException(status_code=404, detail="Not found")
+        fail(404, CODES.PROJECT_NOT_FOUND)
     docs = db.query(Document).filter(Document.project_id == row.id).all()
     return {
         "id": row.id, "title": row.title, "slug": row.slug, "idea": row.idea,
@@ -64,7 +67,7 @@ def update_project(
 ):
     row = project_repo.get_owned(db, user_id=str(user.id), project_id=str(project_id))
     if not row:
-        raise HTTPException(status_code=404, detail="Not found")
+        fail(404, CODES.PROJECT_NOT_FOUND)
     row = project_repo.update(db, row, title=body.get("title"), idea=body.get("idea"))
     return {"id": row.id, "title": row.title, "idea": row.idea}
 
@@ -73,6 +76,6 @@ def update_project(
 def delete_project(project_id: UUID, user=Depends(get_current_user), db: Session = Depends(get_db)):
     row = project_repo.get_owned(db, user_id=str(user.id), project_id=str(project_id))
     if not row:
-        raise HTTPException(status_code=404, detail="Not found")
+        fail(404, CODES.PROJECT_NOT_FOUND)
     project_repo.delete(db, row)
     return {"deleted": True}

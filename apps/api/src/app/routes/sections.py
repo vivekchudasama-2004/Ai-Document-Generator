@@ -2,8 +2,11 @@ import json
 
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
+
+from app.core import error_codes as CODES
+from app.core.errors import fail
 
 from app.core.security import get_current_user
 from app.db.client import get_db
@@ -22,7 +25,7 @@ def edit_section(
 ):
     row = section_repo.get_owned(db, user_id=str(user.id), section_id=str(section_id))
     if not row:
-        raise HTTPException(status_code=404, detail="Not found")
+        fail(404, CODES.SECTION_NOT_FOUND)
     score = score_text(body.content_md)
     row = section_repo.update_content(db, row, body.content_md, count_words(body.content_md))
     row.human_score = score["human_percent"]
@@ -35,7 +38,7 @@ def edit_section(
 def history(section_id: UUID, user=Depends(get_current_user), db: Session = Depends(get_db)):
     row = section_repo.get_owned(db, user_id=str(user.id), section_id=str(section_id))
     if not row:
-        raise HTTPException(status_code=404, detail="Not found")
+        fail(404, CODES.SECTION_NOT_FOUND)
     versions = (
         db.query(Version)
         .filter(Version.document_id == row.document_id)

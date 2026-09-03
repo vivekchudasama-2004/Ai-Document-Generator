@@ -1,6 +1,9 @@
 import difflib
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
+
+from app.core import error_codes as CODES
+from app.core.errors import fail
 
 from app.core.security import get_current_user
 from app.db.client import get_db
@@ -17,7 +20,7 @@ router = APIRouter(tags=["humanize"])
 async def humanize(body: HumanizeIn, user=Depends(get_current_user), db: Session = Depends(get_db)):
     row = section_repo.get_owned(db, user_id=str(user.id), section_id=str(body.section_id))
     if not row:
-        raise HTTPException(status_code=404, detail="Not found")
+        fail(404, CODES.SECTION_NOT_FOUND)
     result = await humanizer.humanize_text(
         row.content_humanized_md or row.content_md, strength=body.strength,
         model_override=body.humanize_model, max_iterations=body.max_iterations,
@@ -36,7 +39,7 @@ async def humanize_batch(
 ):
     doc = document_repo.get_owned(db, user_id=str(user.id), document_id=str(body.document_id))
     if not doc:
-        raise HTTPException(status_code=404, detail="Not found")
+        fail(404, CODES.DOC_NOT_FOUND)
     sections = document_repo.get_sections(db, str(doc.id))
     before = [float(s.human_score or 0) for s in sections]
     updated = 0
@@ -63,7 +66,7 @@ async def humanize_batch(
 def compare(body: dict, user=Depends(get_current_user), db: Session = Depends(get_db)):
     row = section_repo.get_owned(db, user_id=str(user.id), section_id=str(body.get("section_id", "")))
     if not row:
-        raise HTTPException(status_code=404, detail="Not found")
+        fail(404, CODES.SECTION_NOT_FOUND)
     old, new = row.content_md or "", row.content_humanized_md or row.content_md or ""
     unified = "\n".join(difflib.unified_diff(
         old.splitlines(), new.splitlines(), lineterm="", n=3))

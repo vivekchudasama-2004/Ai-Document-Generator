@@ -1,6 +1,6 @@
 # DocuForge Humanized — Detailed Architecture & Project Plan
-**Version:** 1.4.0 | **Date:** 2026-09-03 | **Stack:** Open-Source + NVIDIA NIM on Vercel + TiDB Cloud | **Format:** Professional, 150 words/page, 100% Human Score Target
-**Changelog v1.4.0:** Dark/light theme + favicon; endpoint #38 (versions list); `COOKIE_SECURE` env; Resend sender set; dashboard stats strip.
+**Version:** 1.5.0 | **Date:** 2026-09-03 | **Stack:** Open-Source + NVIDIA NIM on Vercel + TiDB Cloud | **Format:** Professional, 150 words/page, 100% Human Score Target
+**Changelog v1.5.0:** Central error envelope (`error_codes.py` + `messages.py` + `fail()`), global 413/502 AI handlers, `409` on duplicate signup, frontend `messages.ts` + envelope-aware `ApiError`; shared UI components + refresh controls + readable names.
 **Changelog v1.3.0:** Opaque UUID v4 IDs everywhere (no sequential ints in any API); global auth (all `/api/*` require JWT except `GET /api/health`); `user`/`admin` roles with manual admin seed SQL (Appx D) + `/api/admin/*` + `/admin` dashboard; P0 closes: regenerate-section model param, 405b→70b→8b fallback chain + SSE `model.fallback`/`Retry-After`, per-model token budgets + per-doc usage, detect/status shape, user_id scoping rule.
 **Changelog v1.2.0:** Analyzer pinned to spaCy `en_core_web_sm` + `textstat` (+ `tiktoken` budgets) on Vercel; writer = NIM catalog with user model picker (defaults 405b generate / 8b humanize); per-doc model override + `GET /api/meta/models`. Supersedes v1.1.0 (TiDB-only, print-CSS PDF, DETECTOR_MODE). See `PROJECT_ANALYSIS.md` for rationale.
 **Changelog v1.1.0:** TiDB-only (SQLite/Docker/VPS refs removed); PDF = client print-CSS MVP + async worker (WeasyPrint off Vercel); detector `DETECTOR_MODE` switch + honest Demo Mode; Mermaid client-side; SSE streaming contract + `maxDuration`; 4 missing APIs added; DB cascade/`updated_at` fixes. See `PROJECT_ANALYSIS.md` for rationale.
@@ -178,6 +178,8 @@ Base URL: `http://localhost:8000` | Auth: JWT enforced globally — every `/api/
 | 38 | `GET` | `/api/documents/{id}/versions` | List version snapshots | — | `{items:[{version_no, created_at}]}` | Powers studio Versions card |
 
 **Validation & access:** Global auth dependency (401 without JWT; only `GET /api/health` public). All resource IDs UUID v4 (422/404 on invalid, no sequential ints ever). All data endpoints scoped `WHERE user_id = me` (return 404, not 403, on another user's UUID to avoid existence oracle). Pydantic 422 on bad input, XSS-escaped markdown + sanitized SVG, CORS prod + previews, `X-Request-Id` logged.
+
+**Error contract:** Every failure returns the envelope `{ detail: { code, message } }`. Machine codes live in `core/error_codes.py`, humanized copy in `core/messages.py`, raised only via `fail(status, code, **slots)` (`core/errors.py`). Global handlers map `BudgetExceeded → 413 MODEL_TOO_LONG` and `ModelUnavailable → 502 MODEL_UNAVAILABLE`. Frontend `lib/messages.ts` covers offline/stream fallbacks; `ApiError` carries `{ status, code, message }` and Toasts render the humanized message. Duplicate signup is `409 AUTH_EMAIL_TAKEN` (not 400).
 
 ### 11.2 API Flow Example
 ```

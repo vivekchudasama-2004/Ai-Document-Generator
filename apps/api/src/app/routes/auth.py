@@ -1,7 +1,9 @@
-from fastapi import APIRouter, Depends, HTTPException, Request, Response
+from fastapi import APIRouter, Depends, Request, Response
 from sqlalchemy.orm import Session
 
+from app.core import error_codes as CODES
 from app.core.config import get_settings
+from app.core.errors import fail
 from app.core.rate_limit import limiter
 from app.core.security import get_current_user
 from app.db.client import get_db
@@ -36,8 +38,8 @@ def signup(body: SignupIn, request: Request, response: Response, db: Session = D
         user = auth_service.signup(
             db, email=body.email, password=body.password, display_name=body.display_name
         )
-    except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc))
+    except ValueError:
+        fail(409, CODES.AUTH_EMAIL_TAKEN)
     return _pair_response(user, response)
 
 
@@ -47,7 +49,7 @@ def login(body: LoginIn, request: Request, response: Response, db: Session = Dep
     try:
         user = auth_service.login(db, email=body.email, password=body.password)
     except ValueError:
-        raise HTTPException(status_code=401, detail="Invalid credentials")
+        fail(401, CODES.AUTH_BAD_CREDENTIALS)
     return _pair_response(user, response)
 
 
@@ -56,7 +58,7 @@ def refresh(body: RefreshIn, response: Response, db: Session = Depends(get_db)):
     try:
         pair = auth_service.refresh(db, body.refresh_token)
     except ValueError:
-        raise HTTPException(status_code=401, detail="Invalid refresh token")
+        fail(401, CODES.AUTH_BAD_REFRESH)
     response.set_cookie("access_token", pair["access_token"], max_age=3600, **_cookie_kwargs())
     return pair
 
@@ -71,7 +73,7 @@ def logout(response: Response):
 def me(user=Depends(get_current_user), db: Session = Depends(get_db)):
     row = user_repo.get_by_id(db, str(user.id))
     if not row:
-        raise HTTPException(status_code=404, detail="User not found")
+        fail(404, CODES.AUTH_NO_ACCOUNT)
     return MeOut(id=row.id, email=row.email, display_name=row.display_name, role=row.role)
 
 
@@ -86,6 +88,6 @@ def forgot(body: ForgotIn, request: Request, db: Session = Depends(get_db)):
 def reset(body: ResetIn, db: Session = Depends(get_db)):
     try:
         auth_service.reset_password(db, token=body.token, new_password=body.new_password)
-    except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc))
+    except ValueError:
+        fail(400, CODES.AUTH_BAD_RESET)
     return {"reset": True}

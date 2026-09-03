@@ -23,13 +23,21 @@ def count_tokens(text: str) -> int:
 
 
 class BudgetExceeded(ValueError):
-    pass
+    """Prompt exceeds the model's token budget."""
+
+    def __init__(self, message: str, model: str):
+        super().__init__(message)
+        self.model = model
+
+
+class ModelUnavailable(RuntimeError):
+    """NIM failed after retries / no key and no mock. Maps to 502."""
 
 
 async def _post(model: str, messages: list[dict], max_tokens: int) -> str:
     settings = get_settings()
     if not settings.NVIDIA_NIM_API_KEY and not settings.NIM_MOCK:
-        raise RuntimeError("NVIDIA_NIM_API_KEY missing (or set NIM_MOCK=true)")
+        raise ModelUnavailable("NVIDIA_NIM_API_KEY missing (or set NIM_MOCK=true)")
     last_exc: Exception | None = None
     async with httpx.AsyncClient(timeout=30.0) as client:
         for attempt in range(3):
@@ -53,7 +61,7 @@ async def _post(model: str, messages: list[dict], max_tokens: int) -> str:
             except (httpx.TimeoutException, httpx.ConnectError) as exc:
                 last_exc = exc
                 await asyncio.sleep(2**attempt)
-    raise RuntimeError(f"NIM failed after retries: {last_exc}")
+    raise ModelUnavailable(f"NIM failed after retries: {last_exc}")
 
 
 MOCK_DOC = """## Executive Summary
@@ -83,7 +91,9 @@ async def chat_complete(
     settings = get_settings()
     prompt_tokens = sum(count_tokens(m.get("content", "")) for m in messages)
     if prompt_tokens > budget_for(model) * 4:
-        raise BudgetExceeded(f"Prompt ~{prompt_tokens} tokens exceeds budget for {model}")
+        raise BudgetExceeded(
+            f"Prompt ~{prompt_tokens} tokens exceeds budget for {model}", model=model
+        )
 
     if settings.NIM_MOCK or not settings.NVIDIA_NIM_API_KEY:
         title = messages[-1].get("content", "Document")[:60] if messages else "Document"
@@ -102,4 +112,4 @@ async def chat_complete(
             return candidate, text
         except Exception as exc:  # noqa: BLE001 — chain continues
             last_err = exc
-    raise RuntimeError(f"All generate models failed: {last_err}")
+    raise ModelUnavailable(f"All generate models failed: {last_err}")

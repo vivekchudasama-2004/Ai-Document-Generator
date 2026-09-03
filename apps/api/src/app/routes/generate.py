@@ -1,8 +1,11 @@
 import json
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
+
+from app.core import error_codes as CODES
+from app.core.errors import fail
 
 from app.core.security import get_current_user
 from app.db.client import get_db
@@ -10,7 +13,7 @@ from app.repositories import document_repo
 from app.schemas.generate import GenerateIn, GenerateOut, RegenerateSectionIn, SectionOut
 from app.services import generator
 from app.services.detector import score_text
-from app.services.llm.models import resolve_model
+from app.services.llm.models import ModelNotAllowed, resolve_model
 
 router = APIRouter(tags=["generate"])
 
@@ -20,8 +23,8 @@ def _persist(db: Session, *, user_id: str, body: GenerateIn, sections: list[dict
     project_id = str(body.project_id) if body.project_id else user_id
     try:
         hum = resolve_model("humanize", body.humanize_model)
-    except ValueError as exc:
-        raise HTTPException(status_code=422, detail=str(exc))
+    except ModelNotAllowed as exc:
+        fail(422, CODES.MODEL_NOT_ALLOWED, model=exc.model)
     doc = document_repo.create(
         db, project_id=project_id, user_id=user_id, type=body.doc_type,
         tone=body.tone, depth=body.depth, title=body.title, status="generating",
@@ -45,8 +48,8 @@ async def generate(body: GenerateIn, user=Depends(get_current_user), db: Session
             title=body.title, idea=body.idea, doc_type=body.doc_type,
             tone=body.tone, depth=body.depth, model_override=body.generation_model,
         )
-    except ValueError as exc:
-        raise HTTPException(status_code=422, detail=str(exc))
+    except ModelNotAllowed as exc:
+        fail(422, CODES.MODEL_NOT_ALLOWED, model=exc.model)
     doc, rows = _persist(db, user_id=str(user.id), body=body, sections=sections, model_used=model_used)
     return GenerateOut(
         document_id=doc.id,
@@ -65,8 +68,8 @@ async def generate_stream(body: GenerateIn, user=Depends(get_current_user),
             title=body.title, idea=body.idea, doc_type=body.doc_type,
             tone=body.tone, depth=body.depth, model_override=body.generation_model,
         )
-    except ValueError as exc:
-        raise HTTPException(status_code=422, detail=str(exc))
+    except ModelNotAllowed as exc:
+        fail(422, CODES.MODEL_NOT_ALLOWED, model=exc.model)
     doc, rows = _persist(db, user_id=str(user.id), body=body, sections=sections, model_used=model_used)
 
     async def events():
@@ -90,14 +93,14 @@ async def regenerate_section(
 
     doc = document_repo.get_owned(db, user_id=str(user.id), document_id=str(body.document_id))
     if not doc:
-        raise HTTPException(status_code=404, detail="Not found")
+        fail(404, CODES.DOC_NOT_FOUND)
     model_used, sections = await generator.generate_sections(
         title=body.section_title, idea=body.instruction or doc.title,
         doc_type=doc.type, tone=doc.tone, depth=doc.depth,
         model_override=body.generation_model,
     )
     if not sections:
-        raise HTTPException(status_code=502, detail="Model returned nothing")
+        fail(502, CODES.MODEL_EMPTY_RESPONSE)
     fresh = sections[0]
     score = score_text(fresh["content_md"])
     existing = [s for s in document_repo.get_sections(db, str(doc.id)) if s.title == body.section_title]

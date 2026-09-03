@@ -1,5 +1,8 @@
 """Template catalog: 12 types (MVP 3 fully outlined, rest data-only)."""
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
+
+from app.core import error_codes as CODES
+from app.core.errors import fail
 
 from app.core.security import get_current_user
 from app.services.generator import OUTLINES
@@ -47,4 +50,4 @@ def template_detail(doc_type: str, current_user=Depends(get_current_user)):
         if t["type"] == doc_type:
             sections = OUTLINES.get(doc_type, OUTLINES["rdd"])
             return {**t, "sections": [{"title": s} for s in sections]}
-    raise HTTPException(status_code=404, detail="Unknown template")
+    fail(404, CODES.TEMPLATE_UNKNOWN)

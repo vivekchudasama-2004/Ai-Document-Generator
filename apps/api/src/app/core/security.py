@@ -3,12 +3,14 @@ cookie, API uses Authorization: Bearer — both accepted everywhere."""
 from datetime import datetime, timedelta, timezone
 from uuid import UUID
 
-from fastapi import Cookie, Depends, Header, HTTPException, status
+from fastapi import Cookie, Depends, Header
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from pydantic import BaseModel
 
+from app.core import error_codes as CODES
 from app.core.config import get_settings
+from app.core.errors import fail
 
 pwd_ctx = CryptContext(schemes=["bcrypt"], deprecated="auto")
 ALGORITHM = "HS256"
@@ -54,13 +56,13 @@ def decode_token(token: str, kind: str) -> Principal:
     try:
         payload = jwt.decode(token, get_settings().JWT_SECRET, algorithms=[ALGORITHM])
     except JWTError:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+        fail(401, CODES.AUTH_EXPIRED)
     if payload.get("kind") != kind:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Wrong token kind")
+        fail(401, CODES.AUTH_EXPIRED)
     try:
         return Principal(id=UUID(payload["sub"]), role=payload.get("role", "user"))
     except (KeyError, ValueError):
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Malformed token")
+        fail(401, CODES.AUTH_EXPIRED)
 
 
 async def get_current_user(
@@ -73,11 +75,11 @@ async def get_current_user(
     elif access_token:
         token = access_token
     if not token:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
+        fail(401, CODES.AUTH_REQUIRED)
     return decode_token(token, "access")
 
 
 async def require_admin(user: Principal = Depends(get_current_user)) -> Principal:
     if user.role != "admin":
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin only")
+        fail(403, CODES.AUTH_FORBIDDEN_ADMIN)
     return user

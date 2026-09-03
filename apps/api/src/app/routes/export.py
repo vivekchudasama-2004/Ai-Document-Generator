@@ -3,9 +3,12 @@ export row; Cloudinary upload when configured, else local data/exports file."""
 from pathlib import Path
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from fastapi.responses import FileResponse, RedirectResponse
 from sqlalchemy.orm import Session
+
+from app.core import error_codes as CODES
+from app.core.errors import fail
 
 from app.core.security import get_current_user
 from app.db.client import get_db
@@ -22,7 +25,7 @@ EXPORT_DIR = Path("data/exports")
 def export_pdf(body: dict, user=Depends(get_current_user), db: Session = Depends(get_db)):
     doc = document_repo.get_owned(db, user_id=str(user.id), document_id=str(body.get("documentId", "")))
     if not doc:
-        raise HTTPException(status_code=404, detail="Not found")
+        fail(404, CODES.DOC_NOT_FOUND)
     sections = document_repo.get_sections(db, doc.id)
     html = exporter.build_print_html(title=doc.title, doc_type=doc.type, sections=[
         {"title": s.title, "content_md": s.content_md, "content_humanized_md": s.content_humanized_md}
@@ -56,7 +59,7 @@ def export_pdf(body: dict, user=Depends(get_current_user), db: Session = Depends
 def export_docx(body: dict, user=Depends(get_current_user), db: Session = Depends(get_db)):
     doc = document_repo.get_owned(db, user_id=str(user.id), document_id=str(body.get("documentId", "")))
     if not doc:
-        raise HTTPException(status_code=404, detail="Not found")
+        fail(404, CODES.DOC_NOT_FOUND)
     sections = document_repo.get_sections(db, doc.id)
     data = exporter.build_docx(title=doc.title, sections=[
         {"title": s.title, "content_md": s.content_md, "content_humanized_md": s.content_humanized_md}
@@ -100,7 +103,7 @@ def get_export(export_id: UUID, user=Depends(get_current_user), db: Session = De
         .first()
     )
     if not row:
-        raise HTTPException(status_code=404, detail="Not found")
+        fail(404, CODES.EXPORT_NOT_FOUND)
     return {"id": row.id, "format": row.format, "secure_url": row.secure_url,
             "public_id": row.cloudinary_public_id, "pages": row.pages,
             "created_at": row.created_at}
@@ -114,11 +117,11 @@ def download_export(export_id: UUID, user=Depends(get_current_user), db: Session
         .first()
     )
     if not row:
-        raise HTTPException(status_code=404, detail="Not found")
+        fail(404, CODES.EXPORT_NOT_FOUND)
     if row.secure_url:
         return RedirectResponse(row.secure_url, status_code=302)
     if row.path and Path(row.path).exists():
         media = "application/vnd.openxmlformats-officedocument.wordprocessingml.document" \
             if row.format == "docx" else "text/html"
         return FileResponse(row.path, media_type=media, filename=f"{row.document_id}.{row.format}")
-    raise HTTPException(status_code=404, detail="File unavailable")
+    fail(404, CODES.EXPORT_FILE_GONE)
