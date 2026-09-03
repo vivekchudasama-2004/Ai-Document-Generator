@@ -1,0 +1,28 @@
+# secrets & env
+.env
+.env.*
+!.env.example
+
+# deps & builds
+node_modules/
+.pnp/
+apps/web/.next/
+apps/web/out/
+apps/api/.venv/
+apps/api/venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.coverage
+
+# data & uploads (never commit)
+/data/
+*.db
+*.sqlite3
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+.hermes/

@@ -1,0 +1,105 @@
+"""NIM OpenAI-compatible client: 30s timeout, 3x exp-backoff on 429/5xx,
+tiktoken pre-check (413 if over budget), 405b→70b→8b generate fallback,
+NIM_MOCK template path for offline demo."""
+import asyncio
+import logging
+
+import httpx
+
+from app.core.config import get_settings
+from app.services.llm.models import GENERATE_FALLBACK_CHAIN, budget_for
+
+log = logging.getLogger("nim")
+BASE_URL = "https://integrate.api.nvidia.com/v1"
+
+
+def count_tokens(text: str) -> int:
+    try:
+        import tiktoken
+
+        return len(tiktoken.get_encoding("cl100k_base").encode(text))
+    except Exception:
+        return len(text) // 4
+
+
+class BudgetExceeded(ValueError):
+    pass
+
+
+async def _post(model: str, messages: list[dict], max_tokens: int) -> str:
+    settings = get_settings()
+    if not settings.NVIDIA_NIM_API_KEY and not settings.NIM_MOCK:
+        raise RuntimeError("NVIDIA_NIM_API_KEY missing (or set NIM_MOCK=true)")
+    last_exc: Exception | None = None
+    async with httpx.AsyncClient(timeout=30.0) as client:
+        for attempt in range(3):
+            try:
+                resp = await client.post(
+                    f"{BASE_URL}/chat/completions",
+                    headers={"Authorization": f"Bearer {settings.NVIDIA_NIM_API_KEY}"},
+                    json={
+                        "model": model,
+                        "messages": messages,
+                        "temperature": 0.7,
+                        "max_tokens": max_tokens,
+                    },
+                )
+                if resp.status_code in (429, 500, 502, 503):
+                    last_exc = RuntimeError(f"NIM {resp.status_code}")
+                    await asyncio.sleep(2**attempt)
+                    continue
+                resp.raise_for_status()
+                return resp.json()["choices"][0]["message"]["content"]
+            except (httpx.TimeoutException, httpx.ConnectError) as exc:
+                last_exc = exc
+                await asyncio.sleep(2**attempt)
+    raise RuntimeError(f"NIM failed after retries: {last_exc}")
+
+
+MOCK_DOC = """## Executive Summary
+This {title} outlines a practical plan for {idea}. It balances scope, cost, and delivery risk for a small team.
+
+## Goals
+The primary goal is a working release within three weeks. Secondary goals cover quality gates and documentation.
+
+## Architecture
+```mermaid
+graph TD
+  A[Client] --> B[API]
+  B --> C[(Database)]
+  B --> D[AI Provider]
+```
+The client talks to a typed API behind auth. The database owns all state. The AI provider is interchangeable.
+
+## Risks
+Key risks are scope creep and third-party downtime. Mitigations are feature flags and cached fallbacks.
+"""
+
+
+async def chat_complete(
+    model: str, messages: list[dict], *, role: str = "generate"
+) -> tuple[str, str]:
+    """Returns (model_used, text). Applies token budget + generate fallback chain."""
+    settings = get_settings()
+    prompt_tokens = sum(count_tokens(m.get("content", "")) for m in messages)
+    if prompt_tokens > budget_for(model) * 4:
+        raise BudgetExceeded(f"Prompt ~{prompt_tokens} tokens exceeds budget for {model}")
+
+    if settings.NIM_MOCK or not settings.NVIDIA_NIM_API_KEY:
+        title = messages[-1].get("content", "Document")[:60] if messages else "Document"
+        return model, MOCK_DOC.format(title=title, idea="the stated idea")
+
+    if role == "generate":
+        chain = [model] + [m for m in GENERATE_FALLBACK_CHAIN if m != model]
+    else:
+        chain = [model]
+    last_err: Exception | None = None
+    for candidate in chain:
+        try:
+            text = await _post(candidate, messages, budget_for(candidate))
+            if candidate != model:
+                log.warning("model.fallback from=%s to=%s", model, candidate)
+            return candidate, text
+        except Exception as exc:  # noqa: BLE001 — chain continues
+            last_err = exc
+    raise RuntimeError(f"All generate models failed: {last_err}")
