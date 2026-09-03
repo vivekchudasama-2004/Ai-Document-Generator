@@ -286,6 +286,33 @@ button[aria-pressed="true"] .theme-icon {
   transform: rotate(180deg);
 }
 
+/* Animated nav underline — slides in from the left on hover. */
+.nav-underline {
+  position: relative;
+}
+
+.nav-underline::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: -3px;
+  height: 2px;
+  width: 100%;
+  background: var(--accent);
+  border-radius: 2px;
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform var(--motion);
+}
+
+.nav-underline:hover::after {
+  transform: scaleX(1);
+}
+
+.nav-underline:hover {
+  color: var(--ink);
+}
+
 /* ---------- view-transition theme wipe ---------- */
 ::view-transition-old(root),
 ::view-transition-new(root) {

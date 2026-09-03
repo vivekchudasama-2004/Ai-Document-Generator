@@ -71,13 +71,13 @@ function LoginForm() {
 
 export default function LoginPage() {
   return (
-    <main className="mx-auto max-w-md px-6 py-16">
+    <main className="mx-auto max-w-md px-5 py-10 sm:px-6 sm:py-16">
       <p className="font-display text-2xl font-bold">DocuForge</p>
-      <h1 className="font-display mt-6 text-5xl font-bold leading-tight">
+      <h1 className="font-display mt-6 text-4xl font-bold leading-tight sm:text-5xl">
         Welcome <em className="italic">back</em>
       </h1>
       <p className="mt-2 text-[var(--muted)]">Your drafts kept every word.</p>
-      <div className="paper-card mt-8 p-6">
+      <div className="paper-card mt-6 p-5 sm:mt-8 sm:p-6">
         <Suspense><LoginForm /></Suspense>
       </div>
     </main>

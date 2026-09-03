@@ -37,13 +37,13 @@ export default function SignupPage() {
   }
 
   return (
-    <main className="mx-auto max-w-md px-6 py-16">
+    <main className="mx-auto max-w-md px-5 py-10 sm:px-6 sm:py-16">
       <p className="font-display text-2xl font-bold">DocuForge</p>
-      <h1 className="font-display mt-6 text-5xl font-bold leading-tight">
+      <h1 className="font-display mt-6 text-4xl font-bold leading-tight sm:text-5xl">
         Start your <em className="italic">first doc</em>
       </h1>
       <p className="mt-2 text-[var(--muted)]">Free to begin. Ninety seconds to a draft.</p>
-      <form onSubmit={submit} className="paper-card mt-8 space-y-4 p-6" noValidate>
+      <form onSubmit={submit} className="paper-card mt-6 space-y-4 p-5 sm:mt-8 sm:p-6" noValidate>
         <div>
           <label className="text-sm font-semibold" htmlFor="name">Display name (optional)</label>
           <input id="name" className="field mt-1" value={name} onChange={(e) => setName(e.target.value)} />

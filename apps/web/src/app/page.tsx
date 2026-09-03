@@ -84,16 +84,16 @@ function StudioMock() {
         <span className="h-2.5 w-2.5 rounded-full bg-[var(--accent)]" />
         <figcaption className="ml-2 font-mono text-xs text-[var(--muted)]">studio / e-commerce-rdd</figcaption>
       </div>
-      <div className="grid grid-cols-[110px_minmax(0,1fr)_86px] gap-3 p-4 text-left">
-        <div className="space-y-2" aria-hidden>
+      <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-3 p-4 text-left sm:grid-cols-[110px_minmax(0,1fr)_86px]">
+        <div className="hidden space-y-2 sm:block" aria-hidden>
           {["Summary", "Goals", "Architecture", "Stack", "Risks"].map((t, i) => (
             <div key={t} className={`rounded-md px-2 py-1.5 text-[11px] font-medium ${i === 2 ? "mock-active" : ""}`}>
               {t}
             </div>
           ))}
         </div>
-        <div className="space-y-2" aria-hidden>
-          <div className="font-display text-sm font-bold">System Architecture</div>
+        <div className="min-w-0 space-y-2" aria-hidden>
+          <div className="font-display truncate text-sm font-bold">System Architecture</div>
           {[92, 100, 87, 95].map((w, i) => (
             <div key={i} className="skeleton h-2" style={{ width: `${w}%` }} />
           ))}
@@ -101,7 +101,7 @@ function StudioMock() {
             graph TD → API → DB
           </div>
         </div>
-        <div className="flex flex-col items-center gap-2" aria-hidden>
+        <div className="flex shrink-0 flex-col items-center gap-2" aria-hidden>
           <ScoreRing value={98} size={52} />
           <span className="rounded-full bg-[var(--accent)] px-2 py-1 text-[10px] font-bold text-white">Humanize</span>
         </div>
@@ -167,19 +167,19 @@ export default function Landing() {
       />
       {/* ---------- nav ---------- */}
       <header className="sticky top-0 z-10 border-b border-[var(--border)] bg-[var(--paper)]/90 backdrop-blur">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3">
-          <p className="font-display text-2xl font-bold">DocuForge</p>
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-2 px-4 py-3 sm:px-6">
+          <p className="font-display text-xl font-bold sm:text-2xl">DocuForge</p>
           <nav className="hidden items-center gap-6 text-sm font-medium md:flex" aria-label="Sections">
-            <a href="#how" className="hover:underline">How it works</a>
-            <a href="#features" className="hover:underline">Features</a>
-            <a href="#sample" className="hover:underline">Sample</a>
+            <a href="#how" className="nav-underline">How it works</a>
+            <a href="#features" className="nav-underline">Features</a>
+            <a href="#sample" className="nav-underline">Sample</a>
           </nav>
-          <nav className="flex items-center gap-3" aria-label="Account">
+          <nav className="flex items-center gap-2 sm:gap-3" aria-label="Account">
             <ThemeToggle />
             <Link href="/login" className="btn-ghost hidden px-5 py-2 text-sm font-semibold sm:block">
               Log in
             </Link>
-            <Link href="/signup" className="btn-accent px-5 py-2 text-sm font-semibold">
+            <Link href="/signup" className="btn-accent px-4 py-2 text-sm font-semibold hover:-translate-y-px sm:px-5">
               Start writing
             </Link>
           </nav>
@@ -187,38 +187,38 @@ export default function Landing() {
       </header>
 
       {/* ---------- hero ---------- */}
-      <section className="mx-auto grid max-w-6xl items-center gap-10 px-6 pb-8 pt-14 md:grid-cols-2 md:pt-20">
+      <section className="mx-auto grid max-w-6xl items-center gap-8 px-5 pb-8 pt-10 sm:px-6 md:grid-cols-2 md:gap-10 md:pt-20">
         <div>
           <p className="text-sm font-semibold uppercase tracking-widest text-[var(--accent-ink)]">
             Generate → Detect → Humanize
           </p>
-          <h1 className="font-display mt-4 text-balance text-5xl font-bold leading-[1.04] tracking-[-0.03em] md:text-6xl">
+          <h1 className="font-display mt-4 text-balance text-[2.75rem] font-bold leading-[1.04] tracking-[-0.03em] sm:text-5xl md:text-6xl">
             Idea in. <em className="italic text-[var(--accent-ink)]">Human-feeling</em> document out.
           </h1>
           <p className="mt-5 max-w-xl text-pretty text-lg leading-relaxed text-[var(--muted)]">
             Client-ready RDDs, PRDs and design docs — with diagrams and
             150-words-a-page typesetting, rewritten until they read human.
           </p>
-          <div className="mt-8 flex flex-wrap gap-3">
-            <Link href="/signup" className="btn-accent cta group px-7 py-3 font-semibold">
+          <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+            <Link href="/signup" className="btn-accent cta group justify-center px-7 py-3 font-semibold hover:-translate-y-px">
               Draft your first doc
               <svg className="cta-arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
                 <path d="M5 12h14M13 6l6 6-6 6" />
               </svg>
             </Link>
-            <Link href="/login" className="btn-ghost px-7 py-3 font-semibold">
+            <Link href="/login" className="btn-ghost justify-center px-7 py-3 font-semibold">
               Open the studio
             </Link>
           </div>
-          <div className="mt-10 grid max-w-md grid-cols-3 gap-4">
+          <div className="mt-7 grid max-w-md grid-cols-3 gap-3 sm:gap-4 md:mt-10">
             {[
               { v: <Counter to={90} suffix="s" />, l: "idea to draft" },
               { v: <Counter to={95} suffix="%+" />, l: "human target" },
               { v: <Counter to={150} />, l: "words a page" },
             ].map(({ v, l }) => (
-              <div key={l}>
-                <p className="font-display text-4xl font-bold">{v}</p>
-                <p className="mt-1 text-sm text-[var(--muted)]">{l}</p>
+              <div key={l} className="min-w-0">
+                <p className="font-display text-[1.7rem] font-bold leading-none sm:text-4xl">{v}</p>
+                <p className="mt-1 text-xs sm:text-sm text-[var(--muted)]">{l}</p>
               </div>
             ))}
           </div>
@@ -240,7 +240,7 @@ export default function Landing() {
       </div>
 
       {/* ---------- bento ---------- */}
-      <section id="features" className="mx-auto max-w-6xl scroll-mt-20 px-6 py-16">
+      <section id="features" className="mx-auto max-w-6xl scroll-mt-20 px-5 py-12 sm:px-6 md:py-16">
         <Reveal>
           <p className="font-mono text-xs uppercase tracking-[0.18em] text-[var(--muted)]">Why DocuForge</p>
           <h2 className="font-display mt-3 max-w-xl text-balance text-4xl font-bold leading-[1.1]">Everything a client-ready doc needs.</h2>
@@ -284,13 +284,13 @@ export default function Landing() {
                 </div>
                 <p className="mt-3 max-w-[46ch] text-sm leading-[1.7] text-[var(--muted)]">{f.body}</p>
                 {f.big ? (
-                  <div className="mt-5 flex flex-wrap items-center gap-4 rounded-xl border border-[var(--border)] bg-[var(--paper)] p-4">
-                    <ScoreRing value={72} size={56} />
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                  <div className="mt-5 flex items-center gap-3 rounded-xl border border-[var(--border)] bg-[var(--paper)] p-4 sm:gap-4">
+                    <ScoreRing value={72} size={52} />
+                    <svg className="shrink-0" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
                       <path d="M5 12h14M13 6l6 6-6 6" />
                     </svg>
-                    <ScoreRing value={98} size={56} />
-                    <span className="text-sm text-[var(--muted)]">one section, two passes</span>
+                    <ScoreRing value={98} size={52} />
+                    <span className="text-xs text-[var(--muted)] sm:text-sm">one section, two passes</span>
                   </div>
                 ) : i === 1 ? (
                   <div className="mt-4 space-y-2" aria-hidden>
@@ -354,7 +354,7 @@ export default function Landing() {
 
       {/* ---------- how ---------- */}
       <section id="how" className="scroll-mt-20 border-y border-[var(--border)] bg-[var(--surface)]">
-        <div className="mx-auto max-w-6xl px-6 py-16">
+        <div className="mx-auto max-w-6xl px-5 py-12 sm:px-6 md:py-16">
           <Reveal>
             <h2 className="font-display text-4xl font-bold">Ninety seconds, three moves</h2>
           </Reveal>
@@ -373,7 +373,7 @@ export default function Landing() {
       </section>
 
       {/* ---------- sample ---------- */}
-      <section id="sample" className="mx-auto max-w-6xl scroll-mt-20 px-6 py-16">
+      <section id="sample" className="mx-auto max-w-6xl scroll-mt-20 px-5 py-12 sm:px-6 md:py-16">
         <div className="grid items-center gap-8 md:grid-cols-2">
           <Reveal>
             <p className="font-mono text-xs uppercase tracking-widest text-[var(--muted)]">Fresh from the studio</p>
@@ -413,12 +413,12 @@ export default function Landing() {
 
       {/* ---------- footer ---------- */}
       <footer className="border-t border-[var(--border)]">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-6 py-8">
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-5 py-8 sm:px-6">
           <p className="font-display text-xl font-bold">DocuForge</p>
           <p className="text-sm text-[var(--muted)]">Open stack, your models, your words.</p>
           <nav className="flex gap-4 text-sm font-medium" aria-label="Footer">
-            <Link href="/login" className="hover:underline">Log in</Link>
-            <Link href="/signup" className="hover:underline">Sign up</Link>
+            <Link href="/login" className="nav-underline">Log in</Link>
+            <Link href="/signup" className="nav-underline">Sign up</Link>
           </nav>
         </div>
       </footer>
