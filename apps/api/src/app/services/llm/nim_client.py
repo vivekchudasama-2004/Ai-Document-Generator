@@ -7,10 +7,10 @@ import logging
 import httpx
 
 from app.core.config import get_settings
-from app.services.llm.models import GENERATE_FALLBACK_CHAIN, budget_for
+from app.services.llm.models import GENERATE_FALLBACK_CHAIN, NIM_BASE_URL, budget_for, live_model_ids
 
 log = logging.getLogger("nim")
-BASE_URL = "https://integrate.api.nvidia.com/v1"
+BASE_URL = NIM_BASE_URL
 
 
 def count_tokens(text: str) -> int:
@@ -103,6 +103,12 @@ async def chat_complete(
         chain = [model] + [m for m in GENERATE_FALLBACK_CHAIN if m != model]
     else:
         chain = [model]
+    # Pre-flight: skip models your key can't call (verified live, cached 10 min).
+    # Unknown state (mock/offline) never blocks — the call itself decides.
+    reachable = live_model_ids()
+    if reachable is not None:
+        filtered = [candidate for candidate in chain if candidate in reachable]
+        chain = filtered or chain
     last_err: Exception | None = None
     for candidate in chain:
         try:

@@ -7,7 +7,7 @@ from app.core.errors import fail
 
 from app.core.security import get_current_user
 from app.db.client import get_db
-from app.repositories import document_repo, section_repo
+from app.repositories import document_repo, section_repo, user_model_repo
 from app.schemas.humanize import HumanizeBatchIn, HumanizeIn, MermaidIn
 from app.services import humanizer
 from app.services.detector import count_words
@@ -24,6 +24,7 @@ async def humanize(body: HumanizeIn, user=Depends(get_current_user), db: Session
     result = await humanizer.humanize_text(
         row.content_humanized_md or row.content_md, strength=body.strength,
         model_override=body.humanize_model, max_iterations=body.max_iterations,
+        extra_allowed=tuple(user_model_repo.enabled_ids(db, str(user.id))),
     )
     row.content_humanized_md = result["new_content"]
     row.word_count = count_words(result["new_content"])
@@ -49,6 +50,7 @@ async def humanize_batch(
         result = await humanizer.humanize_text(
             row.content_humanized_md or row.content_md, strength=body.strength,
             model_override=body.humanize_model,
+            extra_allowed=tuple(user_model_repo.enabled_ids(db, str(user.id))),
         )
         row.content_humanized_md = result["new_content"]
         row.word_count = count_words(result["new_content"])

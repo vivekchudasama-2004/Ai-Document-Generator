@@ -76,9 +76,12 @@ def split_sections(markdown: str) -> list[dict]:
 
 async def generate_sections(
     *, title: str, idea: str, doc_type: str, tone: str, depth: str,
-    model_override: str | None = None,
+    model_override: str | None = None, extra_allowed: tuple = (),
 ) -> tuple[str, list[dict]]:
-    requested_model = resolve_model("generate", model_override)
+    requested_model = resolve_model(
+        "generate", model_override, extra_allowed=extra_allowed,
+        idea=idea, doc_type=doc_type, depth=depth,
+    )
     # nim_client may fall back (405b → 70b → 8b); persist the model actually used.
     model_used, text = await nim_client.chat_complete(
         requested_model,

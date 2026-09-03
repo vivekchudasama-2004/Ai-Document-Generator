@@ -20,8 +20,8 @@ class Settings(BaseSettings):
     TIDB_URL: str = ""
     NVIDIA_NIM_API_KEY: str = ""
     NIM_MOCK: bool = False
-    DEFAULT_GENERATION_MODEL: str = "meta/llama-3.1-405b-instruct"
-    DEFAULT_HUMANIZE_MODEL: str = "meta/llama-3.1-8b-instruct"
+    DEFAULT_GENERATION_MODEL: str = "auto"
+    DEFAULT_HUMANIZE_MODEL: str = "auto"
     ALLOWED_MODELS: str = (
         "meta/llama-3.1-405b-instruct,meta/llama-3.1-70b-instruct,"
         "meta/llama-3.1-8b-instruct,nvidia/llama-3.1-nemotron-nano-8b-v1"
@@ -40,7 +40,7 @@ class Settings(BaseSettings):
     HF_TOKEN: str = ""
     LOG_LEVEL: str = "info"
     CORS_ORIGINS: str = "http://localhost:3000"
-    APP_VERSION: str = "1.6.0"
+    APP_VERSION: str = "1.7.0"
 
     @property
     def allowed_models(self) -> list[str]:

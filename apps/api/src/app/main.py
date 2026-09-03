@@ -15,7 +15,7 @@ from app.core.rate_limit import limiter
 from app.services.llm.nim_client import BudgetExceeded, ModelUnavailable
 from app.routes import (
     admin, auth, detect, documents, export, generate, humanize, meta,
-    projects, sections, templates,
+    models, projects, sections, templates,
 )
 
 logging.basicConfig(level=get_settings().LOG_LEVEL.upper())
@@ -79,6 +79,6 @@ def health():
 for router in (
     meta.router, auth.router, projects.router, documents.router, sections.router,
     generate.router, detect.router, humanize.router, export.router,
-    templates.router, admin.router,
+    templates.router, admin.router, models.router,
 ):
     app.include_router(router, prefix="/api")

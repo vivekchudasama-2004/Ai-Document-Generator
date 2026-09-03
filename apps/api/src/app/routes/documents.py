@@ -10,7 +10,7 @@ from app.core.errors import fail
 from app.core.security import get_current_user
 from app.db.client import get_db
 from app.entities.document import Version
-from app.repositories import document_repo, project_repo
+from app.repositories import document_repo, project_repo, user_model_repo
 from app.services.detector import score_text
 from app.services.llm.models import ModelNotAllowed
 
@@ -44,10 +44,14 @@ def create_draft(body: dict, user=Depends(get_current_user), db: Session = Depen
     if project_id and not project_repo.get_owned(
         db, user_id=str(user.id), project_id=str(project_id)
     ):
-        raise HTTPException(status_code=404, detail="Project not found")
+        fail(404, CODES.PROJECT_NOT_FOUND)
     try:
-        gen = resolve_model("generate", body.get("generation_model"))
-        hum = resolve_model("humanize", body.get("humanize_model"))
+        extra_models = tuple(user_model_repo.enabled_ids(db, str(user.id)))
+        gen = resolve_model("generate", body.get("generation_model"),
+                            extra_allowed=extra_models,
+                            idea="", doc_type=body.get("doc_type", "rdd"))
+        hum = resolve_model("humanize", body.get("humanize_model"),
+                            extra_allowed=extra_models)
     except ModelNotAllowed as exc:
         fail(422, CODES.MODEL_NOT_ALLOWED, model=exc.model)
     row = document_repo.create(

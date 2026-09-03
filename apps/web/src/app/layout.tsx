@@ -10,8 +10,27 @@ const newsreader = Newsreader({ subsets: ["latin"], variable: "--font-display" }
 const mono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-mono" });
 
 export const metadata: Metadata = {
-  title: "DocuForge — idea to human-feeling document",
-  description: "Generate, de-robot, and export professional paginated documents.",
+  title: {
+    default: "DocuForge — idea to human-feeling document",
+    template: "%s · DocuForge",
+  },
+  description:
+    "Generate client-ready RDDs, PRDs, and technical design docs with architecture diagrams and strict 150-words-a-page typesetting — rewritten until they read human.",
+  keywords: [
+    "AI document generator",
+    "RDD generator",
+    "PRD generator",
+    "technical design document",
+    "AI humanizer",
+    "architecture diagrams",
+    "DocuForge",
+  ],
+  authors: [{ name: "DocuForge" }],
+  robots: { index: true, follow: true },
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#fffbf5" },
+    { media: "(prefers-color-scheme: dark)", color: "#161210" },
+  ],
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

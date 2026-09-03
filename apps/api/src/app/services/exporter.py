@@ -1,5 +1,28 @@
-"""150 words/page engine: sentence-greedy pagination (code/diagrams excluded)
-+ print-CSS HTML builder for the MVP client-print path."""
+"""150 words/page guaranteed minimum: sentence-greedy packing, then
+rebalance pass that pulls sentences forward so every non-final page
+reaches the minimum. The final page is exempt (words can't be invented)."""
+
+PAGE_MIN_WORDS = 145
+
+
+def _rebalance(pages: list[dict]) -> list[dict]:
+    """Pull opening sentences forward until each non-final page hits the minimum."""
+    index = 0
+    while index < len(pages) - 1:
+        while pages[index]["words"] < PAGE_MIN_WORDS and pages[index + 1]["sentences"]:
+            pulled = pages[index + 1]["sentences"].pop(0)
+            pulled_words = count_words(pulled)
+            # Never strand the next page below a stub: merge it whole instead.
+            if pages[index + 1]["words"] - pulled_words < 30 and len(pages[index + 1]["sentences"]) == 0:
+                pages[index]["sentences"].append(pulled)
+                pages[index]["words"] += pulled_words
+                pages.pop(index + 1)
+                break
+            pages[index]["sentences"].append(pulled)
+            pages[index]["words"] += pulled_words
+            pages[index + 1]["words"] -= pulled_words
+        index += 1
+    return [page for page in pages if page["sentences"]]
 import re
 
 from app.services.detector import _sentences, count_words
@@ -38,16 +61,14 @@ def paginate_sections(sections: list[dict]) -> tuple[list[dict], list[dict]]:
         if current:
             pages.append({"section": section.get("title", ""), "words": current_words,
                           "sentences": current})
-    if len(pages) > 1 and pages[-1]["words"] < 100:
-        last = pages.pop()
-        pages[-1]["sentences"].extend(last["sentences"])
-        pages[-1]["words"] += last["words"]
-        if last.get("section") != pages[-1].get("section"):
-            # Trailing sheet folded into the previous section's page:
-            # point this section's TOC entry at the merged sheet.
-            for entry in toc:
-                if entry["title"] == last.get("section"):
-                    entry["page"] = len(pages)
+    pages = _rebalance(pages)
+    # Rebuild sheet numbers from the final pages so the TOC stays exact
+    # after sentences moved forward (empty sections keep nearest sheet).
+    first_sheet: dict[str, int] = {}
+    for position, page in enumerate(pages):
+        first_sheet.setdefault(page.get("section", ""), position + 1)
+    for entry in toc:
+        entry["page"] = first_sheet.get(entry["title"], len(pages))
     return pages, toc
 
 
@@ -72,11 +93,7 @@ def paginate(sections: list[dict]) -> list[dict]:
             current.append(sent)
             current_words += w
     flush()
-    if len(pages) > 1 and pages[-1]["words"] < 100:
-        last = pages.pop()
-        pages[-1]["sentences"].extend(last["sentences"])
-        pages[-1]["words"] += last["words"]
-    return pages
+    return _rebalance(pages)
 
 
 def build_print_html(

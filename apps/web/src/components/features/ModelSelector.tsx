@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api/client";
 
@@ -14,6 +15,19 @@ export type ModelInfo = {
 
 export type ModelChoice = { generation: string; humanize: string };
 
+const AUTO_VALUE = "auto";
+
+function describeEnabled(id: string): ModelInfo {
+  return {
+    id,
+    label: id.split("/").pop()?.replace(/-/g, " ") ?? id,
+    role: "both",
+    cost: "custom",
+    available: true,
+    default: false,
+  };
+}
+
 export default function ModelSelector({
   value,
   onChange,
@@ -21,37 +35,61 @@ export default function ModelSelector({
   value: ModelChoice;
   onChange: (v: ModelChoice) => void;
 }) {
-  const [models, setModels] = useState<ModelInfo[]>([]);
+  const [catalog, setCatalog] = useState<ModelInfo[]>([]);
+  const [enabledExtra, setEnabledExtra] = useState<ModelInfo[]>([]);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    api<{ defaults: { generation: string; humanize: string }; models: ModelInfo[] }>("/api/meta/models")
-      .then((m) => {
-        setModels(m.models);
+    Promise.all([
+      api<{ defaults: { generation: string; humanize: string }; models: ModelInfo[] }>(
+        "/api/meta/models",
+      ),
+      api<{ items: ModelInfo[] }>("/api/models/enabled"),
+    ])
+      .then(([meta, enabled]) => {
+        setCatalog(meta.models);
+        const known = new Set(meta.models.map((model) => model.id));
+        setEnabledExtra(
+          enabled.items.filter((model) => !known.has(model.id)).map((model) => describeEnabled(model.id)),
+        );
         onChange({
-          generation: value.generation || m.defaults.generation,
-          humanize: value.humanize || m.defaults.humanize,
+          generation: value.generation || AUTO_VALUE,
+          humanize: value.humanize || AUTO_VALUE,
         });
       })
-      .catch(() => setError("Model list unavailable — defaults will be used."));
+      .catch(() => {
+        setError("Model list unavailable — Auto will be used.");
+        onChange({ generation: AUTO_VALUE, humanize: AUTO_VALUE });
+      });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const gens = models.filter((m) => m.role === "generate" || m.role === "both");
-  const hums = models.filter((m) => m.role === "humanize" || m.role === "both");
+  const generationPool = [...catalog, ...enabledExtra].filter(
+    (model) => model.role === "generate" || model.role === "both",
+  );
+  const humanizePool = [...catalog, ...enabledExtra].filter(
+    (model) => model.role === "humanize" || model.role === "both",
+  );
 
-  const pick = (label: string, options: ModelInfo[], current: string, key: keyof ModelChoice) => (
+  const pick = (
+    label: string,
+    options: ModelInfo[],
+    current: string,
+    field: keyof ModelChoice,
+    autoHint: string,
+  ) => (
     <label className="block">
       <span className="text-sm font-semibold">{label}</span>
       <select
         className="field mt-1"
-        value={current}
-        onChange={(e) => onChange({ ...value, [key]: e.target.value })}
+        value={current || AUTO_VALUE}
+        onChange={(event) => onChange({ ...value, [field]: event.target.value })}
       >
-        {current ? null : <option value="">Default</option>}
-        {options.map((m) => (
-          <option key={m.id} value={m.id} disabled={!m.available}>
-            {m.label} · {m.cost}{m.available ? "" : " (unavailable)"}
+        <option value={AUTO_VALUE}>Auto (recommended) — {autoHint}</option>
+        {options.map((model) => (
+          <option key={model.id} value={model.id} disabled={!model.available}>
+            {model.label} · {model.cost}
+            {model.available ? "" : " (unavailable)"}
           </option>
         ))}
       </select>
@@ -59,10 +97,20 @@ export default function ModelSelector({
   );
 
   return (
-    <div className="grid gap-3 md:grid-cols-2">
-      {pick("Writing model", gens.length ? gens : [], value.generation, "generation")}
-      {pick("Humanizing model", hums.length ? hums : [], value.humanize, "humanize")}
-      {error ? <p className="text-sm text-[var(--warn)] md:col-span-2">{error}</p> : null}
+    <div>
+      <div className="grid gap-3 md:grid-cols-2">
+        {pick("Writing model", generationPool, value.generation, "generation", "cheapest fit")}
+        {pick("Humanizing model", humanizePool, value.humanize, "humanize", "8B default")}
+      </div>
+      <div className="mt-2 flex items-center justify-between gap-3">
+        <p className="text-xs text-[var(--muted)]">
+          Auto reads your brief and picks the cheapest capable model.
+        </p>
+        <Link href="/settings#models" className="text-xs font-semibold underline underline-offset-2">
+          Manage models
+        </Link>
+      </div>
+      {error ? <p className="mt-1 text-sm text-[var(--warn)]">{error}</p> : null}
     </div>
   );
 }

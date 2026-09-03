@@ -70,9 +70,9 @@ def word_diff(old: str, new: str) -> dict:
 
 async def humanize_text(
     text: str, *, strength: str = "medium", model_override: str | None = None,
-    max_iterations: int = 3,
+    max_iterations: int = 3, extra_allowed: tuple = (),
 ) -> dict:
-    model = resolve_model("humanize", model_override)
+    model = resolve_model("humanize", model_override, extra_allowed=extra_allowed, text=text)
     model_used = model  # nim_client may switch models on retry; track the actual one
     system_prompt = HUMANIZE_SYSTEM[strength] + humanize_suffix(model)
     old_score = score_text(text)

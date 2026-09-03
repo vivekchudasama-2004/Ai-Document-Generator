@@ -149,6 +149,22 @@ const STEPS = [
 export default function Landing() {
   return (
     <main>
+      {/* Structured data: helps search engines list the product correctly. */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "SoftwareApplication",
+            name: "DocuForge",
+            applicationCategory: "BusinessApplication",
+            operatingSystem: "Web",
+            offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+            description:
+              "Generate client-ready RDDs, PRDs, and design docs with human-feeling prose and 150-words-a-page typesetting.",
+          }),
+        }}
+      />
       {/* ---------- nav ---------- */}
       <header className="sticky top-0 z-10 border-b border-[var(--border)] bg-[var(--paper)]/90 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3">
@@ -229,10 +245,10 @@ export default function Landing() {
           <p className="font-mono text-xs uppercase tracking-widest text-[var(--muted)]">Why DocuForge</p>
           <h2 className="font-display mt-2 max-w-xl text-4xl font-bold">Everything a client-ready doc needs. Nothing it doesn&apos;t.</h2>
         </Reveal>
-        <div className="mt-8 grid gap-4 md:grid-cols-3">
+        <div className="mt-8 grid gap-5 md:grid-cols-3">
           {BENTO.map((f, i) => (
             <Reveal key={f.title} delay={(i % 3) * 90} className={f.big ? "md:col-span-2" : ""}>
-              <article className="paper-card lift h-full p-6">
+              <article className="paper-card lift h-full p-7">
                 <div className="flex items-center gap-3">
                   <span className="chip" aria-hidden>
                     {i === 0 ? (
@@ -327,9 +343,9 @@ export default function Landing() {
               </article>
             </Reveal>
           ))}
-          <Reveal delay={180}>
-            <Link href="/signup" className="paper-card lift flex h-full min-h-40 flex-col justify-between bg-[var(--ink)] p-6 text-[var(--paper)] dark:bg-[var(--accent)] dark:text-white">
-              <p className="font-display text-2xl font-bold">Twelve templates. Three minutes.</p>
+          <Reveal delay={180} className="md:col-span-2">
+            <Link href="/signup" className="paper-card lift flex h-full min-h-40 flex-col justify-between gap-4 bg-[var(--ink)] p-7 text-[var(--paper)] dark:bg-[var(--accent)] dark:text-white md:min-h-0 md:flex-row md:items-center">
+              <p className="font-display text-2xl font-bold md:whitespace-nowrap">Twelve templates. Three minutes.</p>
               <span className="font-semibold underline underline-offset-4">Start free →</span>
             </Link>
           </Reveal>
@@ -342,10 +358,10 @@ export default function Landing() {
           <Reveal>
             <h2 className="font-display text-4xl font-bold">Ninety seconds, three moves</h2>
           </Reveal>
-          <ol className="mt-8 grid gap-4 md:grid-cols-3">
+          <ol className="mt-8 grid gap-5 md:grid-cols-3">
             {STEPS.map((s, i) => (
               <Reveal key={s.n} delay={i * 90}>
-                <li className="lift h-full rounded-2xl border border-[var(--border)] bg-[var(--paper)] p-6">
+                <li className="lift h-full rounded-2xl border border-[var(--border)] bg-[var(--paper)] p-7">
                   <span className="nchip">{s.n}</span>
                   <h3 className="font-display mt-3 text-xl font-bold">{s.t}</h3>
                   <p className="mt-2 text-sm leading-relaxed text-[var(--muted)]">{s.d}</p>

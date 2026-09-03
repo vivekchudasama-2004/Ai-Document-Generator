@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api/client";
 import { SectionSkeleton, Toast } from "@/components/ui/ui";
+import ModelManager from "@/components/features/ModelManager";
 
 export default function SettingsPage() {
   const [health, setHealth] = useState<Record<string, unknown> | null>(null);
@@ -57,6 +58,12 @@ export default function SettingsPage() {
             </li>
           ))}
         </ul>
+      </section>
+      <section id="models" className="paper-card mt-4 scroll-mt-20 p-5">
+        <h2 className="font-display text-lg font-bold">Manage models</h2>
+        <div className="mt-3">
+          <ModelManager />
+        </div>
       </section>
       <section className="paper-card mt-4 p-5 text-sm text-[var(--muted)]">
         House rules: 150 words a page (±5), human target 95%+, three humanize passes max.

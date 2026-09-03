@@ -9,7 +9,7 @@ from app.core.errors import fail
 
 from app.core.security import get_current_user
 from app.db.client import get_db
-from app.repositories import document_repo
+from app.repositories import document_repo, user_model_repo
 from app.schemas.generate import GenerateIn, GenerateOut, RegenerateSectionIn, SectionOut
 from app.services import generator
 from app.services.detector import score_text
@@ -22,8 +22,9 @@ router = APIRouter(tags=["generate"])
 def _persist(db: Session, *, user_id: str, body: GenerateIn, sections: list[dict],
              model_used: str) -> tuple:
     project_id = str(body.project_id) if body.project_id else user_id
+    extra_models = tuple(user_model_repo.enabled_ids(db, user_id))
     try:
-        hum = resolve_model("humanize", body.humanize_model)
+        hum = resolve_model("humanize", body.humanize_model, extra_allowed=extra_models)
     except ModelNotAllowed as exc:
         fail(422, CODES.MODEL_NOT_ALLOWED, model=exc.model)
     doc = document_repo.create(
@@ -53,6 +54,7 @@ async def generate(body: GenerateIn, user=Depends(get_current_user), db: Session
         model_used, sections = await generator.generate_sections(
             title=body.title, idea=body.idea, doc_type=body.doc_type,
             tone=body.tone, depth=body.depth, model_override=body.generation_model,
+            extra_allowed=tuple(user_model_repo.enabled_ids(db, str(user.id))),
         )
     except ModelNotAllowed as exc:
         fail(422, CODES.MODEL_NOT_ALLOWED, model=exc.model)
@@ -73,6 +75,7 @@ async def generate_stream(body: GenerateIn, user=Depends(get_current_user),
         model_used, sections = await generator.generate_sections(
             title=body.title, idea=body.idea, doc_type=body.doc_type,
             tone=body.tone, depth=body.depth, model_override=body.generation_model,
+            extra_allowed=tuple(user_model_repo.enabled_ids(db, str(user.id))),
         )
     except ModelNotAllowed as exc:
         fail(422, CODES.MODEL_NOT_ALLOWED, model=exc.model)
@@ -111,6 +114,7 @@ async def regenerate_section(
         title=body.section_title, idea=body.instruction or doc.title,
         doc_type=doc.type, tone=doc.tone, depth=doc.depth,
         model_override=body.generation_model,
+        extra_allowed=tuple(user_model_repo.enabled_ids(db, str(user.id))),
     )
     if not sections:
         fail(502, CODES.MODEL_EMPTY_RESPONSE)
