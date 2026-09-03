@@ -6,6 +6,7 @@ import { ScoreRing, SectionSkeleton, Toast } from "@/components/ui/ui";
 import RefreshButton from "@/components/ui/RefreshButton";
 import SectionCard from "@/components/features/SectionCard";
 import VersionsCard from "@/components/features/VersionsCard";
+import ErrorBoundary from "@/components/ui/ErrorBoundary";
 import type { DocumentDetail } from "@/types";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
@@ -215,9 +216,10 @@ export default function StudioPage({ params }: { params: Promise<{ id: string }>
 
         <div className="space-y-5">
           {document.sections.map((section) => (
-            <SectionCard
-              key={section.id}
-              section={section}
+            // One bad section must never kill the studio: each card is isolated.
+            <ErrorBoundary key={section.id} label={`“${section.title}” section`}>
+              <SectionCard
+                section={section}
               actionsDisabled={busySectionId !== null}
               isBusy={busySectionId === section.id}
               isEditing={editingSectionId === section.id}
@@ -233,10 +235,12 @@ export default function StudioPage({ params }: { params: Promise<{ id: string }>
               diffText={diffsBySection[section.id] ?? null}
               onToggleDiff={() => toggleSectionDiff(section.id)}
             />
+            </ErrorBoundary>
           ))}
         </div>
 
         <aside className="paper-card h-fit p-4 lg:sticky lg:top-6" aria-label="Humanize console">
+          <ErrorBoundary label="humanize console">
           <h3 className="font-display text-lg font-bold">Humanize console</h3>
           <div className="mt-3 flex items-center gap-3">
             <ScoreRing value={document.human_score_avg} size={56} />
@@ -259,6 +263,7 @@ export default function StudioPage({ params }: { params: Promise<{ id: string }>
             </div>
           </dl>
           <VersionsCard versions={versions} busy={busySectionId !== null} onRestore={restoreVersion} />
+          </ErrorBoundary>
         </aside>
       </div>
     </div>

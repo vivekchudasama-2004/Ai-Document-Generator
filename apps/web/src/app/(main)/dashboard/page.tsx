@@ -6,6 +6,7 @@ import { api } from "@/lib/api/client";
 import { PageHeader, ListShell } from "@/components/ui/PageShell";
 import RefreshButton from "@/components/ui/RefreshButton";
 import StatCard from "@/components/ui/StatCard";
+import ErrorBoundary from "@/components/ui/ErrorBoundary";
 
 type Project = { id: string; title: string; slug: string; docCount: number };
 type WorkspaceStats = { docs: number; exports: number };
@@ -50,14 +51,17 @@ export default function Dashboard() {
       />
 
       {stats ? (
-        <div className="mt-6 grid gap-4 sm:grid-cols-3" aria-label="Workspace stats">
+        <ErrorBoundary label="workspace stats">
+          <div className="mt-6 grid gap-4 sm:grid-cols-3" aria-label="Workspace stats">
           <StatCard label="Projects" value={projects?.length ?? 0} href="/projects" />
           <StatCard label="Documents" value={stats.docs} href="/projects" />
           <StatCard label="Exports" value={stats.exports} href="/exports" />
         </div>
+        </ErrorBoundary>
       ) : null}
 
       <div className="mt-6">
+        <ErrorBoundary label="project list">
         <ListShell
           items={projects}
           error={error}
@@ -87,6 +91,7 @@ export default function Dashboard() {
             </div>
           )}
         </ListShell>
+        </ErrorBoundary>
       </div>
     </div>
   );

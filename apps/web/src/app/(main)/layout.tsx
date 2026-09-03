@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { ThemeToggle } from "@/components/ui/ui";
+import ErrorBoundary from "@/components/ui/ErrorBoundary";
 
 const NAV = [
   { href: "/dashboard", label: "Dashboard" },
@@ -54,7 +55,12 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
           </div>
         </div>
       </aside>
-      <main className="min-w-0 flex-1">{children}</main>
+      <main className="min-w-0 flex-1">
+        {/* Page-level isolation: a crashing page shows a fallback, never a blank screen. */}
+        <ErrorBoundary key={path} label="page">
+          {children}
+        </ErrorBoundary>
+      </main>
     </div>
   );
 }

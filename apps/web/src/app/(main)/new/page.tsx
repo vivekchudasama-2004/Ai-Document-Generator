@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import ModelSelector from "@/components/features/ModelSelector";
+import ErrorBoundary from "@/components/ui/ErrorBoundary";
 import { apiStream, ApiError } from "@/lib/api/client";
 import { FieldError, SectionSkeleton, Toast } from "@/components/ui/ui";
 import type { DocType } from "@/types";
@@ -63,6 +64,7 @@ export default function NewDocPage() {
     <div className="max-w-2xl">
       <h1 className="font-display text-3xl font-bold">New document</h1>
       <p className="mt-1 text-[var(--muted)]">Idea → drafted, scored sections in about a minute.</p>
+      <ErrorBoundary label="document wizard">
       <form onSubmit={submit} className="paper-card mt-6 space-y-5 p-6" noValidate>
         <div>
           <label className="text-sm font-semibold" htmlFor="title">Title</label>
@@ -112,6 +114,7 @@ export default function NewDocPage() {
           {busy ? "Drafting…" : "Generate document"}
         </button>
       </form>
+      </ErrorBoundary>
     </div>
   );
 }

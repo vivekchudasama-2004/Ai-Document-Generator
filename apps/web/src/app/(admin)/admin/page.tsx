@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { api, ApiError } from "@/lib/api/client";
 import { SectionSkeleton, Toast } from "@/components/ui/ui";
+import ErrorBoundary from "@/components/ui/ErrorBoundary";
 
 type AdminUser = { id: string; email: string; display_name: string | null; role: string; created_at: string };
 
@@ -52,6 +53,7 @@ export default function AdminPage() {
       </section>
       <section className="paper-card mt-4 p-5">
         <h2 className="font-display text-lg font-bold">Users</h2>
+        <ErrorBoundary label="user list">
         {notice ? <div className="mt-3"><Toast kind="success" message={notice} /></div> : null}
         <ul className="mt-3 divide-y divide-[var(--border)]">
           {users.map((u) => (
@@ -68,6 +70,7 @@ export default function AdminPage() {
             </li>
           ))}
         </ul>
+        </ErrorBoundary>
       </section>
     </div>
   );
