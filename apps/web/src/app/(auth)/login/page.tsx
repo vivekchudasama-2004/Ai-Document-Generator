@@ -45,7 +45,12 @@ function LoginForm() {
         <FieldError message={errors.email} />
       </div>
       <div>
-        <label className="text-sm font-semibold" htmlFor="password">Password</label>
+        <div className="flex items-center justify-between">
+          <label className="text-sm font-semibold" htmlFor="password">Password</label>
+          <Link href="/forgot-password" className="text-sm font-medium text-[var(--accent-ink)] hover:underline">
+            Forgot password?
+          </Link>
+        </div>
         <input id="password" type="password" autoComplete="current-password" className="field mt-1"
           value={password} onChange={(e) => setPassword(e.target.value)} />
         <FieldError message={errors.password} />
@@ -54,10 +59,12 @@ function LoginForm() {
       <button className="btn-accent w-full font-semibold" disabled={busy}>
         {busy ? "Logging in…" : "Log in"}
       </button>
-      <p className="text-sm text-[var(--muted)]">
-        <Link href="/forgot-password" className="underline">Forgot password?</Link>
-        {" · "}New here? <Link href="/signup" className="underline">Create an account</Link>
-      </p>
+      <div className="divider" aria-hidden>
+        <span>new here</span>
+      </div>
+      <Link href="/signup" className="btn-ghost block w-full py-2.5 text-center text-sm font-semibold">
+        Create an account
+      </Link>
     </form>
   );
 }
@@ -66,7 +73,9 @@ export default function LoginPage() {
   return (
     <main className="mx-auto max-w-md px-6 py-16">
       <p className="font-display text-2xl font-bold">DocuForge</p>
-      <h1 className="font-display mt-6 text-4xl font-bold">Welcome back</h1>
+      <h1 className="font-display mt-6 text-5xl font-bold leading-tight">
+        Welcome <em className="italic">back</em>
+      </h1>
       <p className="mt-2 text-[var(--muted)]">Your drafts kept every word.</p>
       <div className="paper-card mt-8 p-6">
         <Suspense><LoginForm /></Suspense>

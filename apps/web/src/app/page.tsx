@@ -193,7 +193,7 @@ export default function Landing() {
             Generate → Detect → Humanize
           </p>
           <h1 className="font-display mt-4 text-5xl font-bold leading-[1.05] md:text-6xl">
-            Idea in. Human-feeling document out.
+            Idea in. <em className="italic">Human-feeling</em> document out.
           </h1>
           <p className="mt-5 max-w-xl text-lg text-[var(--muted)]">
             Client-ready RDDs, PRDs and design docs with architecture diagrams and

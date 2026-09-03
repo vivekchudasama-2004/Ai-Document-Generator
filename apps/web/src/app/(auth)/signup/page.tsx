@@ -39,7 +39,9 @@ export default function SignupPage() {
   return (
     <main className="mx-auto max-w-md px-6 py-16">
       <p className="font-display text-2xl font-bold">DocuForge</p>
-      <h1 className="font-display mt-6 text-4xl font-bold">Start your first doc</h1>
+      <h1 className="font-display mt-6 text-5xl font-bold leading-tight">
+        Start your <em className="italic">first doc</em>
+      </h1>
       <p className="mt-2 text-[var(--muted)]">Free to begin. Ninety seconds to a draft.</p>
       <form onSubmit={submit} className="paper-card mt-8 space-y-4 p-6" noValidate>
         <div>
@@ -62,9 +64,12 @@ export default function SignupPage() {
         <button className="btn-accent w-full font-semibold" disabled={busy}>
           {busy ? "Creating…" : "Create account"}
         </button>
-        <p className="text-sm text-[var(--muted)]">
-          Have an account? <Link href="/login" className="underline">Log in</Link>
-        </p>
+        <div className="divider" aria-hidden>
+          <span>have an account</span>
+        </div>
+        <Link href="/login" className="btn-ghost block w-full py-2.5 text-center text-sm font-semibold">
+          Log in
+        </Link>
       </form>
     </main>
   );

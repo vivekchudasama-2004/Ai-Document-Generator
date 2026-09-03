@@ -1,6 +1,6 @@
 # DocuForge Humanized — Detailed Architecture & Project Plan
 **Version:** 1.7.0 | **Date:** 2026-09-03 | **Stack:** Open-Source + NVIDIA NIM on Vercel + TiDB Cloud | **Format:** Professional, 150 words/page, 100% Human Score Target
-**Changelog v1.7.0:** Auto mode (complexity-scored, token-optimized, default) + live NVIDIA availability + Manage-models UI + per-user enabled set; 150-word minimum rebalance; airier cards + one-line CTA; SEO (metadata, sitemap, robots, JSON-LD).
+**Changelog v1.7.1:** Decluttered auth (password row + divider + ghost CTAs), Newsreader italic accents, opencode-style available-only picker, snappier theme wipe (360 ms + icon spin).
 **Changelog v1.6.0:** Real Cloudinary signed uploads; Sapling blend fallback; per-doc usage ledger + admin tokens/audits; cover + exact-TOC export; SSE model.fallback events; per-model prompt rails; tests sealed off-network.
 **Changelog v1.5.1:** ErrorBoundary isolation — per-section studio cards, console, dashboard panels, wizard, admin list, page-level fallback; one crash never kills a page.
 **Changelog v1.5.0:** Central error envelope (`error_codes.py` + `messages.py` + `fail()`), global 413/502 AI handlers, `409` on duplicate signup, frontend `messages.ts` + envelope-aware `ApiError`; shared UI components + refresh controls + readable names.
