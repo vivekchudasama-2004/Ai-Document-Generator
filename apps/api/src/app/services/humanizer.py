@@ -56,13 +56,14 @@ async def humanize_text(
     max_iterations: int = 3,
 ) -> dict:
     model = resolve_model("humanize", model_override)
+    model_used = model  # nim_client may switch models on retry; track the actual one
     old_score = score_text(text)
     best_text, best_score = text, old_score["human_percent"]
     history = [{"iteration": 0, "human_percent": best_score}]
     iterations = 0
     for i in range(1, max_iterations + 1):
         try:
-            _, candidate = await nim_client.chat_complete(
+            model_used, candidate = await nim_client.chat_complete(
                 model,
                 [
                     {"role": "system", "content": HUMANIZE_SYSTEM[strength]},
@@ -87,5 +88,5 @@ async def humanize_text(
         "iterations": iterations,
         "diff": word_diff(text, best_text),
         "history": history,
-        "model": model,
+        "model": model_used,
     }

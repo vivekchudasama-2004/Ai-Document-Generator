@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from app.core.security import get_current_user
 from app.db.client import get_db
 from app.entities.document import Version
-from app.repositories import document_repo, section_repo
+from app.repositories import section_repo
 from app.schemas.humanize import SectionEditIn
 from app.services.detector import count_words, score_text
 

@@ -8,12 +8,12 @@ router = APIRouter(tags=["detect"])
 
 
 @router.post("/detect")
-def detect(body: DetectIn, _=Depends(get_current_user)):
+def detect(body: DetectIn, current_user=Depends(get_current_user)):
     return score_text(body.text)
 
 
 @router.post("/detect/batch")
-def detect_batch(body: DetectBatchIn, _=Depends(get_current_user)):
+def detect_batch(body: DetectBatchIn, current_user=Depends(get_current_user)):
     return {"results": [
         {"id": item.id, **{k: v for k, v in score_text(item.text).items()
                            if k in ("ai_prob", "human_percent")}}
@@ -22,5 +22,5 @@ def detect_batch(body: DetectBatchIn, _=Depends(get_current_user)):
 
 
 @router.get("/detect/status")
-def detect_status(_=Depends(get_current_user)):
+def detect_status(current_user=Depends(get_current_user)):
     return detector_ready()

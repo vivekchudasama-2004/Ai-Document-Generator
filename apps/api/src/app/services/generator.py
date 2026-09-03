@@ -68,9 +68,10 @@ async def generate_sections(
     *, title: str, idea: str, doc_type: str, tone: str, depth: str,
     model_override: str | None = None,
 ) -> tuple[str, list[dict]]:
-    model = resolve_model("generate", model_override)
-    _, text = await nim_client.chat_complete(
-        model,
+    requested_model = resolve_model("generate", model_override)
+    # nim_client may fall back (405b → 70b → 8b); persist the model actually used.
+    model_used, text = await nim_client.chat_complete(
+        requested_model,
         [
             {"role": "system", "content": GENERATE_SYSTEM},
             {"role": "user", "content": build_prompt(
@@ -78,4 +79,4 @@ async def generate_sections(
         ],
         role="generate",
     )
-    return model, split_sections(text)
+    return model_used, split_sections(text)

@@ -8,7 +8,7 @@ router = APIRouter(tags=["meta"])
 
 
 @router.get("/meta/models")
-def meta_models(_=Depends(get_current_user)):
+def meta_models(current_user=Depends(get_current_user)):
     settings = get_settings()
     return {
         "defaults": {

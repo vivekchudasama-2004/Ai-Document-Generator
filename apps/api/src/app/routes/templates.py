@@ -35,14 +35,14 @@ TEMPLATES: list[dict] = [
 
 
 @router.get("/templates")
-def list_templates(_=Depends(get_current_user)):
+def list_templates(current_user=Depends(get_current_user)):
     return {"items": [
         {**t, "sections": OUTLINES.get(t["type"], OUTLINES["rdd"])} for t in TEMPLATES
     ]}
 
 
 @router.get("/templates/{doc_type}")
-def template_detail(doc_type: str, _=Depends(get_current_user)):
+def template_detail(doc_type: str, current_user=Depends(get_current_user)):
     for t in TEMPLATES:
         if t["type"] == doc_type:
             sections = OUTLINES.get(doc_type, OUTLINES["rdd"])

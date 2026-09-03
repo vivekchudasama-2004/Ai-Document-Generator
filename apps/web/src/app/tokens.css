@@ -181,6 +181,68 @@ html.dark .bg-good-tint {
   box-shadow: var(--shadow-paper);
 }
 
+.mock-active {
+  background: #f6f1e8;
+}
+
+html.dark .mock-active {
+  background: #33291f;
+}
+
+/* ---------- landing motion (watermelon-inspired, token-timed) ---------- */
+.rv {
+  opacity: 0;
+  transform: translateY(14px);
+  transition: opacity 300ms cubic-bezier(0.2, 0.7, 0.3, 1), transform 300ms cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+
+.rv.in {
+  opacity: 1;
+  transform: none;
+}
+
+.marquee {
+  animation: marquee 28s linear infinite;
+}
+
+.marquee:hover {
+  animation-play-state: paused;
+}
+
+@keyframes marquee {
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.float-soft {
+  animation: floaty 7s ease-in-out infinite;
+}
+
+@keyframes floaty {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+.cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cta-arrow {
+  transition: transform var(--motion);
+}
+
+.cta:hover .cta-arrow {
+  transform: translateX(4px);
+}
+
 /* tint helpers — raw values live here, not in components */
 .bg-code {
   background: #141210;

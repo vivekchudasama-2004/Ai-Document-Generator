@@ -1,6 +1,4 @@
 import difflib
-from uuid import UUID
-
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
@@ -75,11 +73,8 @@ def compare(body: dict, user=Depends(get_current_user), db: Session = Depends(ge
 
 
 @router.post("/mermaid/render")
-def mermaid_render(body: MermaidIn, _=Depends(get_current_user)):
+def mermaid_render(body: MermaidIn, current_user=Depends(get_current_user)):
     try:
         return {"svg": sanitize_svg(body.code), "error": None}
     except ValueError as exc:
         return {"svg": None, "error": str(exc)}
-
-
-_ = UUID

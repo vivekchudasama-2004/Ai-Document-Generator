@@ -1,4 +1,3 @@
-import uuid
 from datetime import datetime
 
 from sqlalchemy import DateTime, ForeignKey, String, Text
@@ -18,7 +17,3 @@ class Project(Base):
     idea: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
-
-
-# keep uuid import used for re-export clarity
-_ = uuid.uuid4

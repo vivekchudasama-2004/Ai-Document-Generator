@@ -1,72 +1,329 @@
+"use client";
+
 import Link from "next/link";
-import { ThemeToggle } from "@/components/ui/ui";
+import { useEffect, useRef, useState } from "react";
+import { ScoreRing, ThemeToggle } from "@/components/ui/ui";
+
+/* ---------- scroll reveal (no-op under reduced motion) ---------- */
+function Reveal({ children, delay = 0, className = "" }: { children: React.ReactNode; delay?: number; className?: string }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [inView, setInView] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      setInView(true);
+      return;
+    }
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          setInView(true);
+          io.disconnect();
+        }
+      },
+      { threshold: 0.15 },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+  return (
+    <div ref={ref} className={`rv${inView ? " in" : ""} ${className}`} style={{ transitionDelay: `${delay}ms` }}>
+      {children}
+    </div>
+  );
+}
+
+/* ---------- animated counter ---------- */
+function Counter({ to, suffix = "", decimals = 0 }: { to: number; suffix?: string; decimals?: number }) {
+  const ref = useRef<HTMLSpanElement>(null);
+  const [value, setValue] = useState(0);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      setValue(to);
+      return;
+    }
+    let raf = 0;
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (!entries[0].isIntersecting) return;
+        io.disconnect();
+        const start = performance.now();
+        const tick = (now: number) => {
+          const p = Math.min(1, (now - start) / 1200);
+          setValue(to * (1 - Math.pow(1 - p, 3)));
+          if (p < 1) raf = requestAnimationFrame(tick);
+        };
+        raf = requestAnimationFrame(tick);
+      },
+      { threshold: 0.4 },
+    );
+    io.observe(el);
+    return () => {
+      io.disconnect();
+      cancelAnimationFrame(raf);
+    };
+  }, [to]);
+  return (
+    <span ref={ref}>
+      {value.toFixed(decimals)}
+      {suffix}
+    </span>
+  );
+}
+
+/* ---------- CSS-only studio mock ---------- */
+function StudioMock() {
+  return (
+    <figure className="paper-sheet overflow-hidden" aria-label="Preview of the DocuForge studio">
+      <div className="flex items-center gap-1.5 border-b border-[var(--border)] px-4 py-3">
+        <span className="h-2.5 w-2.5 rounded-full bg-[var(--border)]" />
+        <span className="h-2.5 w-2.5 rounded-full bg-[var(--border)]" />
+        <span className="h-2.5 w-2.5 rounded-full bg-[var(--accent)]" />
+        <figcaption className="ml-2 font-mono text-xs text-[var(--muted)]">studio / e-commerce-rdd</figcaption>
+      </div>
+      <div className="grid grid-cols-[110px_minmax(0,1fr)_86px] gap-3 p-4 text-left">
+        <div className="space-y-2" aria-hidden>
+          {["Summary", "Goals", "Architecture", "Stack", "Risks"].map((t, i) => (
+            <div key={t} className={`rounded-md px-2 py-1.5 text-[11px] font-medium ${i === 2 ? "mock-active" : ""}`}>
+              {t}
+            </div>
+          ))}
+        </div>
+        <div className="space-y-2" aria-hidden>
+          <div className="font-display text-sm font-bold">System Architecture</div>
+          {[92, 100, 87, 95].map((w, i) => (
+            <div key={i} className="skeleton h-2" style={{ width: `${w}%` }} />
+          ))}
+          <div className="rounded-md border border-[var(--border)] p-2 font-mono text-[10px] text-[var(--muted)]">
+            graph TD → API → DB
+          </div>
+        </div>
+        <div className="flex flex-col items-center gap-2" aria-hidden>
+          <ScoreRing value={98} size={52} />
+          <span className="rounded-full bg-[var(--accent)] px-2 py-1 text-[10px] font-bold text-white">Humanize</span>
+        </div>
+      </div>
+    </figure>
+  );
+}
+
+const TYPES = ["RDD", "PRD", "BRD", "Technical Design", "System Design", "Architecture", "Dev Plan", "Runbook", "SOP", "Incident Report", "Postmortem", "Roadmap"];
+
+const BENTO = [
+  {
+    big: true,
+    title: "A loop, not a prompt",
+    body: "Draft → score every section for humanness → rewrite the weak ones, up to three passes. Each iteration is versioned with a before/after diff, so the improvement is inspectable, not vibes.",
+  },
+  {
+    big: false,
+    title: "Scores that explain themselves",
+    body: "Burstiness, passive voice, cliché hits, Flesch — the badge tells you why, not just a number.",
+  },
+  {
+    big: false,
+    title: "150 words a page. Really.",
+    body: "Sentence-aware pagination with widow control, cover, contents, headers and footers.",
+  },
+  {
+    big: false,
+    title: "Pick your models",
+    body: "Choose the writer and the humanizer per document, with automatic fallback when one is busy.",
+  },
+  {
+    big: false,
+    title: "Private by design",
+    body: "JWT on every endpoint, user/admin roles, opaque IDs — your drafts are yours alone.",
+  },
+];
 
 const STEPS = [
-  { n: "01", t: "Describe the idea", d: "One or two lines. Pick a type — RDD, PRD, technical design — plus tone and the AI models that will write it." },
-  { n: "02", t: "Watch it de-robot itself", d: "Every section is scored for humanness. Weak ones are rewritten up to three times — each version kept with a diff." },
-  { n: "03", t: "Export print-ready pages", d: "Exactly 150 words a page, cover, contents, headers and footers. PDF or DOCX in one click." },
+  { n: "01", t: "Describe the idea", d: "A line or two. Pick a type — RDD, PRD, technical design — plus tone and the models that will write it." },
+  { n: "02", t: "Watch it de-robot itself", d: "Sections stream in already scored. Hit Humanize on the weak ones; every rewrite is kept with a diff." },
+  { n: "03", t: "Export print-ready pages", d: "Exactly 150 words a page with diagrams intact. PDF or DOCX in one click." },
 ];
 
 export default function Landing() {
   return (
-    <main className="mx-auto max-w-5xl px-6 py-10">
-      <header className="flex items-center justify-between">
-        <p className="font-display text-2xl font-bold">DocuForge</p>
-        <nav className="flex items-center gap-3">
-          <ThemeToggle />
-          <Link href="/login" className="btn-ghost px-5 py-2 text-sm font-semibold">
-            Log in
-          </Link>
-          <Link href="/signup" className="btn-accent px-5 py-2 text-sm font-semibold">
-            Start writing
-          </Link>
-        </nav>
+    <main>
+      {/* ---------- nav ---------- */}
+      <header className="sticky top-0 z-10 border-b border-[var(--border)] bg-[var(--paper)]/90 backdrop-blur">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3">
+          <p className="font-display text-2xl font-bold">DocuForge</p>
+          <nav className="hidden items-center gap-6 text-sm font-medium md:flex" aria-label="Sections">
+            <a href="#how" className="hover:underline">How it works</a>
+            <a href="#features" className="hover:underline">Features</a>
+            <a href="#sample" className="hover:underline">Sample</a>
+          </nav>
+          <nav className="flex items-center gap-3" aria-label="Account">
+            <ThemeToggle />
+            <Link href="/login" className="btn-ghost hidden px-5 py-2 text-sm font-semibold sm:block">
+              Log in
+            </Link>
+            <Link href="/signup" className="btn-accent px-5 py-2 text-sm font-semibold">
+              Start writing
+            </Link>
+          </nav>
+        </div>
       </header>
 
-      <section className="mt-16 max-w-3xl">
-        <p className="text-sm font-semibold uppercase tracking-widest text-[var(--accent-ink)]">
-          Generate → Detect → Humanize
-        </p>
-        <h1 className="font-display mt-4 text-5xl font-bold leading-[1.05] md:text-6xl">
-          Idea in. Human-feeling document out.
-        </h1>
-        <p className="mt-5 max-w-xl text-lg text-[var(--muted)]">
-          Client-ready RDDs, PRDs and design docs with architecture diagrams and
-          strict 150-words-a-page typesetting — rewritten until they read human.
-        </p>
-        <div className="mt-8 flex gap-3">
-          <Link href="/signup" className="btn-accent px-7 py-3 font-semibold">
-            Draft your first doc
-          </Link>
-          <Link href="/login" className="btn-ghost px-7 py-3 font-semibold">
-            Open the studio
-          </Link>
+      {/* ---------- hero ---------- */}
+      <section className="mx-auto grid max-w-6xl items-center gap-10 px-6 pb-8 pt-14 md:grid-cols-2 md:pt-20">
+        <div>
+          <p className="text-sm font-semibold uppercase tracking-widest text-[var(--accent-ink)]">
+            Generate → Detect → Humanize
+          </p>
+          <h1 className="font-display mt-4 text-5xl font-bold leading-[1.05] md:text-6xl">
+            Idea in. Human-feeling document out.
+          </h1>
+          <p className="mt-5 max-w-xl text-lg text-[var(--muted)]">
+            Client-ready RDDs, PRDs and design docs with architecture diagrams and
+            strict 150-words-a-page typesetting — rewritten until they read human.
+          </p>
+          <div className="mt-8 flex flex-wrap gap-3">
+            <Link href="/signup" className="btn-accent cta group px-7 py-3 font-semibold">
+              Draft your first doc
+              <svg className="cta-arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                <path d="M5 12h14M13 6l6 6-6 6" />
+              </svg>
+            </Link>
+            <Link href="/login" className="btn-ghost px-7 py-3 font-semibold">
+              Open the studio
+            </Link>
+          </div>
+          <div className="mt-10 grid max-w-md grid-cols-3 gap-4">
+            {[
+              { v: <Counter to={90} suffix="s" />, l: "idea to draft" },
+              { v: <Counter to={95} suffix="%+" />, l: "human target" },
+              { v: <Counter to={150} />, l: "words a page" },
+            ].map(({ v, l }) => (
+              <div key={l}>
+                <p className="font-display text-4xl font-bold">{v}</p>
+                <p className="mt-1 text-sm text-[var(--muted)]">{l}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+        <Reveal delay={120} className="float-soft">
+          <StudioMock />
+        </Reveal>
+      </section>
+
+      {/* ---------- marquee ---------- */}
+      <div className="overflow-hidden border-y border-[var(--border)] py-3" aria-hidden>
+        <div className="marquee flex w-max font-mono text-sm text-[var(--muted)]">
+          {[...TYPES, ...TYPES].map((t, i) => (
+            <span key={i} className="flex items-center gap-8 pr-8">
+              {t} <span className="text-[var(--accent)]">///</span>
+            </span>
+          ))}
+        </div>
+      </div>
+
+      {/* ---------- bento ---------- */}
+      <section id="features" className="mx-auto max-w-6xl scroll-mt-20 px-6 py-16">
+        <Reveal>
+          <p className="font-mono text-xs uppercase tracking-widest text-[var(--muted)]">Why DocuForge</p>
+          <h2 className="font-display mt-2 max-w-xl text-4xl font-bold">Everything a client-ready doc needs. Nothing it doesn&apos;t.</h2>
+        </Reveal>
+        <div className="mt-8 grid gap-4 md:grid-cols-3">
+          {BENTO.map((f, i) => (
+            <Reveal key={f.title} delay={(i % 3) * 90} className={f.big ? "md:col-span-2" : ""}>
+              <article className="paper-card lift h-full p-6">
+                <h3 className={`font-display font-bold ${f.big ? "text-2xl" : "text-xl"}`}>{f.title}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-[var(--muted)]">{f.body}</p>
+                {f.big ? (
+                  <div className="mt-4 flex items-center gap-4">
+                    <ScoreRing value={72} size={56} />
+                    <span className="font-mono text-[var(--muted)]">→</span>
+                    <ScoreRing value={98} size={56} />
+                    <span className="text-sm text-[var(--muted)]">one section, two passes</span>
+                  </div>
+                ) : null}
+              </article>
+            </Reveal>
+          ))}
+          <Reveal delay={180}>
+            <Link href="/signup" className="paper-card lift flex h-full min-h-40 flex-col justify-between bg-[var(--ink)] p-6 text-[var(--paper)] dark:bg-[var(--accent)] dark:text-white">
+              <p className="font-display text-2xl font-bold">Twelve templates. Three minutes.</p>
+              <span className="font-semibold underline underline-offset-4">Start free →</span>
+            </Link>
+          </Reveal>
         </div>
       </section>
 
-      <section className="mt-16 grid gap-4 md:grid-cols-3">
-        {STEPS.map((s) => (
-          <article key={s.n} className="paper-card p-6">
-            <p className="font-mono text-sm text-[var(--accent-ink)]">{s.n}</p>
-            <h2 className="font-display mt-2 text-xl font-bold">{s.t}</h2>
-            <p className="mt-2 text-sm leading-relaxed text-[var(--muted)]">{s.d}</p>
-          </article>
-        ))}
+      {/* ---------- how ---------- */}
+      <section id="how" className="scroll-mt-20 border-y border-[var(--border)] bg-[var(--surface)]">
+        <div className="mx-auto max-w-6xl px-6 py-16">
+          <Reveal>
+            <h2 className="font-display text-4xl font-bold">Ninety seconds, three moves</h2>
+          </Reveal>
+          <ol className="mt-8 grid gap-4 md:grid-cols-3">
+            {STEPS.map((s, i) => (
+              <Reveal key={s.n} delay={i * 90}>
+                <li className="rounded-2xl border border-[var(--border)] bg-[var(--paper)] p-6">
+                  <p className="font-mono text-sm text-[var(--accent-ink)]">{s.n}</p>
+                  <h3 className="font-display mt-2 text-xl font-bold">{s.t}</h3>
+                  <p className="mt-2 text-sm leading-relaxed text-[var(--muted)]">{s.d}</p>
+                </li>
+              </Reveal>
+            ))}
+          </ol>
+        </div>
       </section>
 
-      <section className="paper-sheet mx-auto mt-12 max-w-3xl p-8 md:p-10">
-        <p className="font-mono text-xs uppercase tracking-widest text-[var(--muted)]">
-          Fresh from the studio
-        </p>
-        <h3 className="font-display mt-2 text-3xl font-bold">E-commerce platform RDD</h3>
-        <p className="mt-3 leading-relaxed text-[var(--muted)]">
-          Twenty-two pages, four diagrams, every section scoring above 95% human —
-          drafted, de-roboted and exported before the coffee cooled.
-        </p>
+      {/* ---------- sample ---------- */}
+      <section id="sample" className="mx-auto max-w-6xl scroll-mt-20 px-6 py-16">
+        <div className="grid items-center gap-8 md:grid-cols-2">
+          <Reveal>
+            <p className="font-mono text-xs uppercase tracking-widest text-[var(--muted)]">Fresh from the studio</p>
+            <h2 className="font-display mt-2 text-4xl font-bold">E-commerce platform RDD</h2>
+            <p className="mt-3 leading-relaxed text-[var(--muted)]">
+              Twenty-two pages, four diagrams, every section above 95% human —
+              drafted, de-roboted and exported before the coffee cooled.
+            </p>
+            <Link href="/signup" className="btn-accent cta group mt-6 inline-flex px-6 py-3 font-semibold">
+              Make one like it
+              <svg className="cta-arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                <path d="M5 12h14M13 6l6 6-6 6" />
+              </svg>
+            </Link>
+          </Reveal>
+          <Reveal delay={120}>
+            <div className="paper-sheet p-8">
+              <p className="font-mono text-xs uppercase tracking-widest text-[var(--muted)]">Export report</p>
+              <div className="mt-4 space-y-3">
+                {[
+                  ["Executive Summary", 98],
+                  ["Architecture", 97],
+                  ["Requirements", 96],
+                  ["Risks", 99],
+                ].map(([t, v]) => (
+                  <div key={t as string} className="flex items-center justify-between gap-3 border-b border-[var(--border)] pb-3">
+                    <span className="font-medium">{t}</span>
+                    <ScoreRing value={v as number} size={40} />
+                  </div>
+                ))}
+              </div>
+              <p className="mt-4 font-mono text-xs text-[var(--muted)]">22 pages · 150 words each · PDF + DOCX</p>
+            </div>
+          </Reveal>
+        </div>
       </section>
 
-      <footer className="mt-16 border-t border-[var(--border)] pt-6 text-sm text-[var(--muted)]">
-        DocuForge Humanized — open stack, your models, your words.
+      {/* ---------- footer ---------- */}
+      <footer className="border-t border-[var(--border)]">
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-6 py-8">
+          <p className="font-display text-xl font-bold">DocuForge</p>
+          <p className="text-sm text-[var(--muted)]">Open stack, your models, your words.</p>
+          <nav className="flex gap-4 text-sm font-medium" aria-label="Footer">
+            <Link href="/login" className="hover:underline">Log in</Link>
+            <Link href="/signup" className="hover:underline">Sign up</Link>
+          </nav>
+        </div>
       </footer>
     </main>
   );
