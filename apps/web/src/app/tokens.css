@@ -124,6 +124,63 @@ body {
   animation: rise var(--motion);
 }
 
+/* ---------- dark theme (class on <html>, CSS-var driven) ---------- */
+html.dark {
+  --paper: #161210;
+  --surface: #221c16;
+  --ink: #f3ece1;
+  --accent: #ff7a45;
+  --accent-ink: #ffb48f;
+  --muted: #a89f93;
+  --border: #3b332a;
+  --good: #4ade80;
+  --warn: #fbbf24;
+  --bad: #f87171;
+  --shadow-paper: 0 20px 60px rgba(0, 0, 0, 0.5);
+  --shadow-card: 0 2px 12px rgba(0, 0, 0, 0.4);
+}
+
+html.dark .skeleton {
+  background: #2e2822;
+}
+
+html.dark .skeleton::after {
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.08), transparent);
+}
+
+html.dark .field {
+  background: #221c16;
+  color: var(--ink);
+}
+
+html.dark .btn-ghost:hover,
+html.dark .rowlink:hover,
+html.dark .navlink:hover {
+  background: #2b241d;
+}
+
+html.dark .navlink-active {
+  background: #33291f;
+}
+
+html.dark .bg-good-tint {
+  background: #1d3a28;
+}
+
+/* ---------- helpers ---------- */
+.bg-surface {
+  background: var(--surface);
+}
+
+.lift {
+  transition: transform var(--motion), box-shadow var(--motion);
+}
+
+.lift:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-paper);
+}
+
 /* tint helpers — raw values live here, not in components */
 .bg-code {
   background: #141210;

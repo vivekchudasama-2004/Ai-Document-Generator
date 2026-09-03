@@ -42,7 +42,7 @@ export default function ProjectsPage() {
             action={<Link href="/new" className="btn-accent px-6 py-2.5 text-sm font-semibold">New document</Link>} />
         </div>
       ) : (
-        <ul className="mt-6 divide-y divide-[var(--border)] rounded-2xl border border-[var(--border)] bg-white">
+        <ul className="mt-6 divide-y divide-[var(--border)] rounded-2xl border border-[var(--border)] bg-surface">
           {projects.map((p) => (
             <li key={p.id}>
               <Link href={`/projects/${p.id}`} className="rowlink flex items-center justify-between px-5 py-4">

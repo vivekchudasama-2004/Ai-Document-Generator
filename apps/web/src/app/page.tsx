@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ThemeToggle } from "@/components/ui/ui";
 
 const STEPS = [
   { n: "01", t: "Describe the idea", d: "One or two lines. Pick a type — RDD, PRD, technical design — plus tone and the AI models that will write it." },
@@ -11,7 +12,8 @@ export default function Landing() {
     <main className="mx-auto max-w-5xl px-6 py-10">
       <header className="flex items-center justify-between">
         <p className="font-display text-2xl font-bold">DocuForge</p>
-        <nav className="flex gap-3">
+        <nav className="flex items-center gap-3">
+          <ThemeToggle />
           <Link href="/login" className="btn-ghost px-5 py-2 text-sm font-semibold">
             Log in
           </Link>

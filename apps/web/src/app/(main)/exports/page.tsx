@@ -30,7 +30,7 @@ export default function ExportsPage() {
   return (
     <div>
       <h1 className="font-display text-3xl font-bold">Exports</h1>
-      <ul className="mt-6 divide-y divide-[var(--border)] rounded-2xl border border-[var(--border)] bg-white">
+      <ul className="mt-6 divide-y divide-[var(--border)] rounded-2xl border border-[var(--border)] bg-surface">
         {items.map((e) => (
           <li key={e.id} className="flex items-center justify-between gap-3 px-5 py-4">
             <div>

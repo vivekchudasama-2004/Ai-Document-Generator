@@ -27,7 +27,7 @@ export default function ProjectDetail({ params }: { params: Promise<{ id: string
       <h1 className="font-display text-3xl font-bold">{doc.title}</h1>
       {doc.idea ? <p className="mt-1 text-[var(--muted)]">{doc.idea}</p> : null}
       <h2 className="font-display mt-8 text-xl font-bold">Documents</h2>
-      <ul className="mt-3 divide-y divide-[var(--border)] rounded-2xl border border-[var(--border)] bg-white">
+      <ul className="mt-3 divide-y divide-[var(--border)] rounded-2xl border border-[var(--border)] bg-surface">
         {doc.documents.map((d) => (
           <li key={d.id}>
             <Link href={`/studio/${d.id}`} className="rowlink flex items-center justify-between px-5 py-4">

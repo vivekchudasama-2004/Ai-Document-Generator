@@ -32,7 +32,7 @@ export default function MermaidBlock({ code }: { code: string }) {
   }
   return (
     <div
-      className="mt-3 overflow-x-auto rounded-lg border border-[var(--border)] bg-white p-4"
+      className="mt-3 overflow-x-auto rounded-lg border border-[var(--border)] bg-surface p-4"
       role="img"
       aria-label="Architecture diagram"
       dangerouslySetInnerHTML={{ __html: svg }}

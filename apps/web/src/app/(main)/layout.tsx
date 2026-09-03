@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
+import { ThemeToggle } from "@/components/ui/ui";
 
 const NAV = [
   { href: "/dashboard", label: "Dashboard" },
@@ -47,7 +48,10 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
         <div className="mt-auto border-t border-[var(--border)] pt-4 text-sm">
           <p className="truncate font-semibold">{user.display_name ?? user.email}</p>
           <p className="text-[var(--muted)]">{user.role}</p>
-          <button onClick={logout} className="btn-ghost mt-3 w-full text-sm">Log out</button>
+          <div className="mt-3 flex flex-col gap-2">
+            <ThemeToggle />
+            <button onClick={logout} className="btn-ghost w-full text-sm">Log out</button>
+          </div>
         </div>
       </aside>
       <main className="min-w-0 flex-1">{children}</main>

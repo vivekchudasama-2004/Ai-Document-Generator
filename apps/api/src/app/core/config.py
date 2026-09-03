@@ -31,7 +31,7 @@ class Settings(BaseSettings):
     COOKIE_SECURE: bool = False  # True in prod (Vercel = https)
     REFRESH_EXPIRE_DAYS: int = 7
     RESEND_API_KEY: str = ""
-    RESEND_FROM: str = "DocuForge <noreply@example.com>"
+    RESEND_FROM: str = "DocuForge <vivekchudasama170@gmail.com>"
     PUBLIC_APP_URL: str = "http://localhost:3000"
     CLOUDINARY_URL: str = ""
     DETECTOR_MODE: str = "spacy+api"
@@ -40,7 +40,7 @@ class Settings(BaseSettings):
     HF_TOKEN: str = ""
     LOG_LEVEL: str = "info"
     CORS_ORIGINS: str = "http://localhost:3000"
-    APP_VERSION: str = "1.3.0"
+    APP_VERSION: str = "1.4.0"
 
     @property
     def allowed_models(self) -> list[str]:
