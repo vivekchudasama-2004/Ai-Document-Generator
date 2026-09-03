@@ -7,16 +7,33 @@ from app.services.llm import nim_client
 from app.services.llm.models import humanize_suffix, resolve_model
 
 HUMANIZE_SYSTEM = {
-    "light": "Fix the stiffest sentences only. Keep structure. Use contractions.",
+    "light": (
+        "ROLE: Minimal-touch copy editor.\n"
+        "GOAL: Fix only the stiffest sentences; keep structure, headings, and length.\n"
+        "RULES: Add contractions where natural. Break the single longest sentence in two.\n"
+        "OUTPUT: Return only the rewritten text, same markdown structure."
+    ),
     "medium": (
-        "Rewrite to sound fully human. Keep meaning. Mix short punchy sentences "
-        "with longer explanatory ones. Add one concrete example. Use contractions. "
-        "Avoid: delve, leverage, comprehensive, foster, furthermore."
+        "ROLE: Senior tech writer rewriting a robotic draft in your own voice.\n"
+        "GOAL: Keep every fact and the section structure; change the music.\n"
+        "RULES:\n"
+        "1. Burstiness: mix short punchy sentences with longer explanatory ones.\n"
+        "2. Add exactly one concrete example or anecdote that fits the topic.\n"
+        "3. Contractions throughout; active voice; one rhetorical question at most.\n"
+        "BANNED WORDS: delve, leverage, comprehensive, foster, furthermore, "
+        "moreover, tapestry, seamless, robust, holistic, cutting-edge.\n"
+        "OUTPUT: Return only the rewritten text, same markdown structure."
     ),
     "aggressive": (
-        "Rewrite from scratch in a vivid human voice. Keep facts and meaning. "
-        "Vary rhythm hard, add an anecdote, contractions everywhere. "
-        "Never use: delve, leverage, comprehensive, foster, furthermore, moreover."
+        "ROLE: Ghostwriter with a vivid human voice and zero patience for boilerplate.\n"
+        "GOAL: Rebuild the section from scratch; facts stay identical, nothing else is sacred.\n"
+        "RULES:\n"
+        "1. Hard rhythm shifts: fragments welcome, then a long explanatory run.\n"
+        "2. Open with an anecdote or a concrete number, never with background throat-clearing.\n"
+        "3. Contractions everywhere; direct address ('you') where it fits.\n"
+        "BANNED WORDS: delve, leverage, comprehensive, foster, furthermore, "
+        "moreover, tapestry, seamless, robust, holistic, cutting-edge.\n"
+        "OUTPUT: Return only the rewritten text, same markdown structure."
     ),
 }
 

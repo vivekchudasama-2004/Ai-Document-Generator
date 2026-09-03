@@ -243,6 +243,159 @@ html.dark .mock-active {
   transform: translateX(4px);
 }
 
+/* ---------- view-transition theme wipe ---------- */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+::view-transition-old(root) {
+  z-index: 1;
+}
+
+::view-transition-new(root) {
+  z-index: 2;
+}
+
+/* ---------- global micro-interactions ---------- */
+.btn-accent,
+.btn-ghost {
+  transition: filter var(--motion), transform var(--motion), background var(--motion);
+}
+
+.btn-accent:active,
+.btn-ghost:active {
+  transform: scale(0.97);
+}
+
+.navlink,
+.rowlink {
+  transition: background var(--motion), transform var(--motion);
+}
+
+.page-enter {
+  animation: pagein 240ms ease-out;
+}
+
+@keyframes pagein {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+/* ---------- card icon chips + mini visuals ---------- */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  flex: none;
+  border-radius: 12px;
+  background: #fdeee2;
+  color: var(--accent-ink);
+}
+
+html.dark .chip {
+  background: #3a2415;
+}
+
+.nchip {
+  display: inline-block;
+  font-family: JetBrains Mono, monospace;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--accent-ink);
+  background: #fdeee2;
+  border-radius: 8px;
+  padding: 3px 9px;
+}
+
+html.dark .nchip {
+  background: #3a2415;
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-family: JetBrains Mono, monospace;
+  font-size: 12px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 5px 12px;
+  background: var(--paper);
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  flex: none;
+}
+
+.dot-ember {
+  background: var(--accent);
+}
+
+.dot-good {
+  background: var(--good);
+}
+
+.page-stack {
+  position: relative;
+  width: 76px;
+  height: 92px;
+  flex: none;
+}
+
+.page-stack i {
+  position: absolute;
+  inset: 0;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.page-stack i:nth-child(1) {
+  transform: rotate(-6deg) translate(-4px, 3px);
+}
+
+.page-stack i:nth-child(2) {
+  transform: rotate(4deg) translate(4px, 2px);
+}
+
+.page-stack b {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--paper);
+  font-family: JetBrains Mono, monospace;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.meter {
+  height: 8px;
+  border-radius: 999px;
+  background: var(--border);
+  overflow: hidden;
+}
+
+.meter > span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--accent);
+  transition: width 600ms cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+
 /* tint helpers — raw values live here, not in components */
 .bg-code {
   background: #141210;

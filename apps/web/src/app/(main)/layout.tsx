@@ -58,7 +58,10 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
       <main className="min-w-0 flex-1">
         {/* Page-level isolation: a crashing page shows a fallback, never a blank screen. */}
         <ErrorBoundary key={path} label="page">
-          {children}
+          {/* Fresh route = gentle entrance (disabled under reduced motion). */}
+          <div key={path} className="page-enter">
+            {children}
+          </div>
         </ErrorBoundary>
       </main>
     </div>

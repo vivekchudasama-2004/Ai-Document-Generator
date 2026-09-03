@@ -233,16 +233,97 @@ export default function Landing() {
           {BENTO.map((f, i) => (
             <Reveal key={f.title} delay={(i % 3) * 90} className={f.big ? "md:col-span-2" : ""}>
               <article className="paper-card lift h-full p-6">
-                <h3 className={`font-display font-bold ${f.big ? "text-2xl" : "text-xl"}`}>{f.title}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-[var(--muted)]">{f.body}</p>
+                <div className="flex items-center gap-3">
+                  <span className="chip" aria-hidden>
+                    {i === 0 ? (
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M17 2l4 4-4 4" />
+                        <path d="M3 11v-1a4 4 0 0 1 4-4h14" />
+                        <path d="M7 22l-4-4 4-4" />
+                        <path d="M21 13v1a4 4 0 0 1-4 4H3" />
+                      </svg>
+                    ) : i === 1 ? (
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                        <circle cx="12" cy="9" r="6" />
+                        <path d="M8.5 14L7 22l5-3 5 3-1.5-8" />
+                      </svg>
+                    ) : i === 2 ? (
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                        <path d="M14 2v6h6M9 13h6M9 17h6" />
+                      </svg>
+                    ) : i === 3 ? (
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                        <rect x="4" y="4" width="16" height="16" rx="2" />
+                        <path d="M9 9h6v6H9zM4 10h-2M4 14h-2M22 10h-2M22 14h-2M10 4V2M14 4V2M10 22v-2M14 22v-2" />
+                      </svg>
+                    ) : (
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M12 22s8-3.6 8-10V5l-8-3-8 3v7c0 6.4 8 10 8 10z" />
+                        <path d="M9 12l2 2 4-4" />
+                      </svg>
+                    )}
+                  </span>
+                  <h3 className={`font-display font-bold ${f.big ? "text-2xl" : "text-xl"}`}>{f.title}</h3>
+                </div>
+                <p className="mt-3 text-sm leading-relaxed text-[var(--muted)]">{f.body}</p>
                 {f.big ? (
-                  <div className="mt-4 flex items-center gap-4">
+                  <div className="mt-5 flex flex-wrap items-center gap-4 rounded-xl border border-[var(--border)] bg-[var(--paper)] p-4">
                     <ScoreRing value={72} size={56} />
-                    <span className="font-mono text-[var(--muted)]">→</span>
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                      <path d="M5 12h14M13 6l6 6-6 6" />
+                    </svg>
                     <ScoreRing value={98} size={56} />
                     <span className="text-sm text-[var(--muted)]">one section, two passes</span>
                   </div>
-                ) : null}
+                ) : i === 1 ? (
+                  <div className="mt-4 space-y-2" aria-hidden>
+                    {[
+                      ["Rhythm", "92%"],
+                      ["Voice", "88%"],
+                      ["Diction", "95%"],
+                    ].map(([label, width]) => (
+                      <div key={label} className="flex items-center gap-3">
+                        <span className="w-16 font-mono text-[11px] text-[var(--muted)]">{label}</span>
+                        <div className="meter flex-1">
+                          <span style={{ width }} />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : i === 2 ? (
+                  <div className="mt-4 flex items-center gap-4" aria-hidden>
+                    <span className="page-stack">
+                      <i />
+                      <i />
+                      <b>150</b>
+                    </span>
+                    <span className="font-mono text-[11px] leading-relaxed text-[var(--muted)]">
+                      cover
+                      <br />
+                      contents
+                      <br />
+                      body…
+                    </span>
+                  </div>
+                ) : i === 3 ? (
+                  <div className="mt-4 flex flex-wrap gap-2" aria-hidden>
+                    <span className="pill">
+                      <span className="dot dot-ember" />
+                      405B · writes
+                    </span>
+                    <span className="pill">
+                      <span className="dot dot-good" />
+                      8B · humanizes
+                    </span>
+                  </div>
+                ) : (
+                  <div className="mt-4 flex flex-wrap gap-2 font-mono text-[11px] text-[var(--muted)]" aria-hidden>
+                    <span className="pill">JWT</span>
+                    <span className="pill">roles</span>
+                    <span className="pill">UUID ids</span>
+                  </div>
+                )}
               </article>
             </Reveal>
           ))}
@@ -264,9 +345,9 @@ export default function Landing() {
           <ol className="mt-8 grid gap-4 md:grid-cols-3">
             {STEPS.map((s, i) => (
               <Reveal key={s.n} delay={i * 90}>
-                <li className="rounded-2xl border border-[var(--border)] bg-[var(--paper)] p-6">
-                  <p className="font-mono text-sm text-[var(--accent-ink)]">{s.n}</p>
-                  <h3 className="font-display mt-2 text-xl font-bold">{s.t}</h3>
+                <li className="lift h-full rounded-2xl border border-[var(--border)] bg-[var(--paper)] p-6">
+                  <span className="nchip">{s.n}</span>
+                  <h3 className="font-display mt-3 text-xl font-bold">{s.t}</h3>
                   <p className="mt-2 text-sm leading-relaxed text-[var(--muted)]">{s.d}</p>
                 </li>
               </Reveal>
