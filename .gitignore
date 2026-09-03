@@ -16,7 +16,7 @@ __pycache__/
 .coverage
 
 # data & uploads (never commit)
-/data/
+data/
 *.db
 *.sqlite3
 
