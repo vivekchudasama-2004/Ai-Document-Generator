@@ -74,6 +74,7 @@ body,
   color: #fff;
   border-radius: 10px;
   min-height: 44px;
+  text-align: center;
   transition: filter var(--motion), transform var(--motion);
 }
 
@@ -90,6 +91,7 @@ body,
   border: 1px solid var(--border);
   border-radius: 10px;
   min-height: 44px;
+  text-align: center;
   transition: background var(--motion);
 }
 
