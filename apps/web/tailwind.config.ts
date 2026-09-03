@@ -13,9 +13,9 @@ const config: Config = {
       },
       borderRadius: { xl2: "var(--radius)" },
       fontFamily: {
-        display: ["Newsreader", "Georgia", "serif"],
-        body: ["Inter", "system-ui", "sans-serif"],
-        mono: ["JetBrains Mono", "monospace"],
+        display: ["var(--font-display)", "Newsreader", "Georgia", "serif"],
+        body: ["var(--font-body)", "Inter", "system-ui", "sans-serif"],
+        mono: ["var(--font-mono)", "JetBrains Mono", "monospace"],
       },
     },
   },

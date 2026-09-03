@@ -60,10 +60,11 @@ export default function ModelSelector({
               default: false,
             })),
         );
-        // Live list wins: drop anything your key cannot call right now.
+        // Live list wins: anything your key can't call right now is removed
+        // from the picker entirely (opencode-style — never greyed out).
         setLiveIds(available.live ? available.models.map((model) => model.id) : null);
         if (!available.live) {
-          setNote("Live availability unknown — showing the full catalog.");
+          setNote("Live check off (no NVIDIA key on the server) — showing the catalog.");
         }
         onChange({
           generation: value.generation || AUTO_VALUE,

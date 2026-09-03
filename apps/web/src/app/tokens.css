@@ -22,13 +22,30 @@ html {
 }
 
 body {
-  font-family: Inter, system-ui, sans-serif;
+  font-family: var(--font-body), Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  font-feature-settings: "ss01", "cv05", "cv11";
 }
 
 .font-display {
-  font-family: Newsreader, Georgia, serif;
-  letter-spacing: -0.02em;
+  font-family: var(--font-display), Newsreader, Georgia, serif;
+  letter-spacing: -0.03em;
+  font-optical-sizing: auto;
+}
+
+code,
+kbd,
+.font-mono {
+  font-family: var(--font-mono), "JetBrains Mono", ui-monospace, monospace;
+  font-feature-settings: "ss02", "zero";
+}
+
+/* Smooth color interpolation on theme swap (fast props only — no layout). */
+body,
+.paper-card,
+.paper-sheet {
+  transition: background-color 240ms ease-out, color 240ms ease-out, border-color 240ms ease-out;
 }
 
 .paper-card {
@@ -282,6 +299,18 @@ button[aria-pressed="true"] .theme-icon {
 
 ::view-transition-new(root) {
   z-index: 2;
+}
+
+/* While the theme wipe runs, park GPU-heavy loops so low-end machines
+   don't jank: marquee, float, and shimmer resume the frame after. */
+html.theming .marquee,
+html.theming .float-soft,
+html.theming .skeleton::after {
+  animation-play-state: paused !important;
+}
+
+html.theming header {
+  backdrop-filter: none !important;
 }
 
 /* ---------- global micro-interactions ---------- */

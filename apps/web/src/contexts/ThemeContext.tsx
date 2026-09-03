@@ -47,6 +47,9 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       const transition = transitional.startViewTransition(() => {
         flushSync(() => setTheme(next));
       });
+      // Park GPU-heavy loops for the wipe so it stays smooth on low-end GPUs.
+      document.documentElement.classList.add("theming");
+      const done = () => document.documentElement.classList.remove("theming");
       transition.ready
         .then(() => {
           const { clientX: x, clientY: y } = pointer;
@@ -54,7 +57,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
             Math.max(x, window.innerWidth - x),
             Math.max(y, window.innerHeight - y),
           );
-          document.documentElement.animate(
+          const wipe = document.documentElement.animate(
             {
               clipPath: [
                 `circle(0px at ${x}px ${y}px)`,
@@ -62,13 +65,14 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
               ],
             },
             {
-              duration: 360,
-              easing: "cubic-bezier(0.3, 0.7, 0.3, 1)",
+              duration: 260,
+              easing: "cubic-bezier(0.2, 0.7, 0.3, 1)",
               pseudoElement: "::view-transition-new(root)",
             },
           );
+          wipe.finished.then(done).catch(done);
         })
-        .catch(() => undefined);
+        .catch(done);
     },
     [theme],
   );

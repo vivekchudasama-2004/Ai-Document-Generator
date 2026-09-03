@@ -116,34 +116,34 @@ const BENTO = [
   {
     big: true,
     title: "A loop, not a prompt",
-    body: "Draft → score every section for humanness → rewrite the weak ones, up to three passes. Each iteration is versioned with a before/after diff, so the improvement is inspectable, not vibes.",
+    body: "Draft → score each section → rewrite the weak ones. Every pass is versioned with a diff.",
   },
   {
     big: false,
     title: "Scores that explain themselves",
-    body: "Burstiness, passive voice, cliché hits, Flesch — the badge tells you why, not just a number.",
+    body: "Rhythm, voice, and diction — the badge shows why, not just a number.",
   },
   {
     big: false,
     title: "150 words a page. Really.",
-    body: "Sentence-aware pagination with widow control, cover, contents, headers and footers.",
+    body: "Sentence-aware pagination with a cover, contents, headers and footers.",
   },
   {
     big: false,
     title: "Pick your models",
-    body: "Choose the writer and the humanizer per document, with automatic fallback when one is busy.",
+    body: "Auto picks the cheapest capable writer — or pin your own per document.",
   },
   {
     big: false,
     title: "Private by design",
-    body: "JWT on every endpoint, user/admin roles, opaque IDs — your drafts are yours alone.",
+    body: "JWT on every endpoint, user/admin roles, opaque IDs.",
   },
 ];
 
 const STEPS = [
-  { n: "01", t: "Describe the idea", d: "A line or two. Pick a type — RDD, PRD, technical design — plus tone and the models that will write it." },
-  { n: "02", t: "Watch it de-robot itself", d: "Sections stream in already scored. Hit Humanize on the weak ones; every rewrite is kept with a diff." },
-  { n: "03", t: "Export print-ready pages", d: "Exactly 150 words a page with diagrams intact. PDF or DOCX in one click." },
+  { n: "01", t: "Describe the idea", d: "A line or two. Pick a type — RDD, PRD, design doc — plus tone and models." },
+  { n: "02", t: "Watch it de-robot itself", d: "Sections stream in scored. Humanize the weak ones; every rewrite keeps a diff." },
+  { n: "03", t: "Export print-ready pages", d: "150 words a page, diagrams intact. PDF or DOCX in one click." },
 ];
 
 export default function Landing() {
@@ -192,12 +192,12 @@ export default function Landing() {
           <p className="text-sm font-semibold uppercase tracking-widest text-[var(--accent-ink)]">
             Generate → Detect → Humanize
           </p>
-          <h1 className="font-display mt-4 text-5xl font-bold leading-[1.05] md:text-6xl">
-            Idea in. <em className="italic">Human-feeling</em> document out.
+          <h1 className="font-display mt-4 text-balance text-5xl font-bold leading-[1.04] tracking-[-0.03em] md:text-6xl">
+            Idea in. <em className="italic text-[var(--accent-ink)]">Human-feeling</em> document out.
           </h1>
-          <p className="mt-5 max-w-xl text-lg text-[var(--muted)]">
-            Client-ready RDDs, PRDs and design docs with architecture diagrams and
-            strict 150-words-a-page typesetting — rewritten until they read human.
+          <p className="mt-5 max-w-xl text-pretty text-lg leading-relaxed text-[var(--muted)]">
+            Client-ready RDDs, PRDs and design docs — with diagrams and
+            150-words-a-page typesetting, rewritten until they read human.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
             <Link href="/signup" className="btn-accent cta group px-7 py-3 font-semibold">
@@ -242,8 +242,8 @@ export default function Landing() {
       {/* ---------- bento ---------- */}
       <section id="features" className="mx-auto max-w-6xl scroll-mt-20 px-6 py-16">
         <Reveal>
-          <p className="font-mono text-xs uppercase tracking-widest text-[var(--muted)]">Why DocuForge</p>
-          <h2 className="font-display mt-2 max-w-xl text-4xl font-bold">Everything a client-ready doc needs. Nothing it doesn&apos;t.</h2>
+          <p className="font-mono text-xs uppercase tracking-[0.18em] text-[var(--muted)]">Why DocuForge</p>
+          <h2 className="font-display mt-3 max-w-xl text-balance text-4xl font-bold leading-[1.1]">Everything a client-ready doc needs.</h2>
         </Reveal>
         <div className="mt-8 grid gap-5 md:grid-cols-3">
           {BENTO.map((f, i) => (
@@ -282,7 +282,7 @@ export default function Landing() {
                   </span>
                   <h3 className={`font-display font-bold ${f.big ? "text-2xl" : "text-xl"}`}>{f.title}</h3>
                 </div>
-                <p className="mt-3 text-sm leading-relaxed text-[var(--muted)]">{f.body}</p>
+                <p className="mt-3 max-w-[46ch] text-sm leading-[1.7] text-[var(--muted)]">{f.body}</p>
                 {f.big ? (
                   <div className="mt-5 flex flex-wrap items-center gap-4 rounded-xl border border-[var(--border)] bg-[var(--paper)] p-4">
                     <ScoreRing value={72} size={56} />
