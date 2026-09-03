@@ -315,11 +315,7 @@ export default function Landing() {
                       <b>150</b>
                     </span>
                     <span className="font-mono text-[11px] leading-relaxed text-[var(--muted)]">
-                      cover
-                      <br />
-                      contents
-                      <br />
-                      body…
+                      cover · contents · body…
                     </span>
                   </div>
                 ) : i === 3 ? (
