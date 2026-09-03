@@ -54,10 +54,15 @@ function authHeaders(extra?: Record<string, string>): Record<string, string> {
   return headers;
 }
 
-function redirectToLogin(path: string) {
-  if (typeof window !== "undefined" && !path.startsWith("/auth/")) {
-    window.location.href = "/login";
-  }
+const PUBLIC_PAGES = ["/", "/login", "/signup", "/forgot-password", "/reset-password"];
+
+function redirectToLogin(apiPath: string) {
+  // Auth API calls (login/signup themselves) must never trigger this.
+  if (typeof window === "undefined" || apiPath.startsWith("/api/auth/")) return;
+  // Public pages stay put: redirecting to /login from /login is an infinite loop.
+  const page = window.location.pathname;
+  if (PUBLIC_PAGES.some((publicPage) => page === publicPage || page.startsWith(`${publicPage}/`))) return;
+  window.location.href = "/login";
 }
 
 export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {

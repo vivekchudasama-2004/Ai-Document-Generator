@@ -1,9 +1,12 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
 import { api, setToken } from "@/lib/api/client";
 
 export type User = { id: string; email: string; display_name: string | null; role: string };
+
+const PUBLIC_PAGES = ["/", "/login", "/signup", "/forgot-password", "/reset-password"];
 
 type AuthCtx = {
   user: User | null;
@@ -18,13 +21,20 @@ const Ctx = createContext<AuthCtx | null>(null);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const pathname = usePathname();
 
   useEffect(() => {
+    // Public pages never need a session: don't probe /me, don't bounce to /login.
+    if (PUBLIC_PAGES.some((page) => pathname === page || pathname.startsWith(`${page}/`))) {
+      setUser(null);
+      setLoading(false);
+      return;
+    }
     api<User>("/api/auth/me")
       .then((u) => setUser(u))
       .catch(() => setUser(null))
       .finally(() => setLoading(false));
-  }, []);
+  }, [pathname]);
 
   const login = useCallback(async (email: string, password: string) => {
     const pair = await api<{ access_token: string }>("/api/auth/login", {
