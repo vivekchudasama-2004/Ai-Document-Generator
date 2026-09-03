@@ -1,19 +1,48 @@
-# secrets & env
+# secrets & env (never commit live values)
 .env
 .env.*
 !.env.example
+*.pem
+*.key
 
 # deps & builds
 node_modules/
 .pnp/
 apps/web/.next/
 apps/web/out/
+apps/web/dist/
+.turbo/
+dist/
+*.tsbuildinfo
+
+# python
 apps/api/.venv/
 apps/api/venv/
+venv/
+ENV/
 __pycache__/
-*.pyc
+*.py[cod]
+*$py.class
+
+# testing & coverage
 .pytest_cache/
 .coverage
+coverage.xml
+htmlcov/
+.coverage.*
+
+# typecheck / lint caches
+.mypy_cache/
+.ruff_cache/
+.eslintcache
+
+# deploy
+.vercel/
+
+# logs
+*.log
+npm-debug.log*
+yarn-debug.log*
 
 # data & uploads (never commit)
 data/
@@ -26,3 +55,4 @@ Thumbs.db
 .vscode/
 .idea/
 .hermes/
+*.swp

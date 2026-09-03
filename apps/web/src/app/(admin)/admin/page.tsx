@@ -58,9 +58,9 @@ export default function AdminPage() {
         <ul className="mt-3 divide-y divide-[var(--border)]">
           {users.map((u) => (
             <li key={u.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
-              <div>
+              <div className="min-w-0">
                 <p className="font-semibold">{u.display_name ?? u.email}</p>
-                <p className="font-mono text-xs text-[var(--muted)]">{u.email} · {u.role}</p>
+                <p className="break-all font-mono text-xs text-[var(--muted)]">{u.email} · {u.role}</p>
               </div>
               <select aria-label={`Role for ${u.email}`} className="field max-w-40" value={u.role}
                 onChange={(e) => setRole(u.id, e.target.value)}>

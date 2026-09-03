@@ -28,7 +28,7 @@ function Reveal({ children, delay = 0, className = "" }: { children: React.React
     return () => io.disconnect();
   }, []);
   return (
-    <div ref={ref} className={`rv${inView ? " in" : ""} ${className}`} style={{ transitionDelay: `${delay}ms` }}>
+    <div ref={ref} className={`rv min-w-0${inView ? " in" : ""} ${className}`} style={{ transitionDelay: `${delay}ms` }}>
       {children}
     </div>
   );
@@ -248,7 +248,7 @@ export default function Landing() {
         <div className="mt-8 grid gap-5 md:grid-cols-3">
           {BENTO.map((f, i) => (
             <Reveal key={f.title} delay={(i % 3) * 90} className={f.big ? "md:col-span-2" : ""}>
-              <article className="paper-card lift h-full p-7">
+              <article className="paper-card lift h-full min-w-0 p-5 sm:p-7">
                 <div className="flex items-center gap-3">
                   <span className="chip" aria-hidden>
                     {i === 0 ? (
@@ -284,13 +284,13 @@ export default function Landing() {
                 </div>
                 <p className="mt-3 max-w-[46ch] text-sm leading-[1.7] text-[var(--muted)]">{f.body}</p>
                 {f.big ? (
-                  <div className="mt-5 flex items-center gap-3 rounded-xl border border-[var(--border)] bg-[var(--paper)] p-4 sm:gap-4">
+                  <div className="mt-5 flex min-w-0 items-center gap-3 rounded-xl border border-[var(--border)] bg-[var(--paper)] p-4 sm:gap-4">
                     <ScoreRing value={72} size={52} />
                     <svg className="shrink-0" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
                       <path d="M5 12h14M13 6l6 6-6 6" />
                     </svg>
                     <ScoreRing value={98} size={52} />
-                    <span className="text-xs text-[var(--muted)] sm:text-sm">one section, two passes</span>
+                    <span className="min-w-0 text-xs text-[var(--muted)] sm:text-sm">one section, two passes</span>
                   </div>
                 ) : i === 1 ? (
                   <div className="mt-4 space-y-2" aria-hidden>
@@ -299,9 +299,9 @@ export default function Landing() {
                       ["Voice", "88%"],
                       ["Diction", "95%"],
                     ].map(([label, width]) => (
-                      <div key={label} className="flex items-center gap-3">
-                        <span className="w-16 font-mono text-[11px] text-[var(--muted)]">{label}</span>
-                        <div className="meter flex-1">
+                      <div key={label} className="flex min-w-0 items-center gap-3">
+                        <span className="w-16 shrink-0 font-mono text-[11px] text-[var(--muted)]">{label}</span>
+                        <div className="meter min-w-0 flex-1">
                           <span style={{ width }} />
                         </div>
                       </div>

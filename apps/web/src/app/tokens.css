@@ -21,6 +21,13 @@ html {
   color: var(--ink);
 }
 
+/* Stray wide children must never create a horizontal scrollbar —
+   `clip` (not `hidden`) keeps `position: sticky` working. */
+html,
+body {
+  overflow-x: clip;
+}
+
 body {
   font-family: var(--font-body), Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
   -webkit-font-smoothing: antialiased;
