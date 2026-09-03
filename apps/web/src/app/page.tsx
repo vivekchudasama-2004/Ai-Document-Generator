@@ -316,7 +316,9 @@ export default function Landing() {
                     </span>
                     <span className="font-mono text-[11px] leading-relaxed text-[var(--muted)]">
                       cover
+                      <br />
                       contents
+                      <br />
                       body…
                     </span>
                   </div>
