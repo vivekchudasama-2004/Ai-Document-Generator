@@ -34,6 +34,29 @@ def edit_section(
     return {"id": row.id, "word_count": row.word_count, "human_score": row.human_score}
 
 
+@router.post("/sections/{section_id}/move")
+def move_section(
+    section_id: UUID, body: dict,
+    user=Depends(get_current_user), db: Session = Depends(get_db),
+):
+    """Reorder the studio outline: swap this section with its neighbour."""
+    direction = str(body.get("direction") or "").strip().lower()
+    if direction not in ("up", "down"):
+        fail(422, CODES.SECTION_BAD_MOVE)
+    row = section_repo.get_owned(db, user_id=str(user.id), section_id=str(section_id))
+    if not row:
+        fail(404, CODES.SECTION_NOT_FOUND)
+    siblings = section_repo.ordered_siblings(db, str(row.document_id))
+    idx = next((i for i, s in enumerate(siblings) if str(s.id) == str(row.id)), None)
+    neighbour = siblings[idx - 1] if direction == "up" and idx and idx > 0 else None
+    if neighbour is None and direction == "down" and idx is not None and idx < len(siblings) - 1:
+        neighbour = siblings[idx + 1]
+    if neighbour is None:
+        return {"id": row.id, "order_idx": row.order_idx, "moved": False}
+    section_repo.swap_order(db, row, neighbour)
+    return {"id": row.id, "order_idx": row.order_idx, "moved": True}
+
+
 @router.get("/humanize/history/{section_id}")
 def history(section_id: UUID, user=Depends(get_current_user), db: Session = Depends(get_db)):
     row = section_repo.get_owned(db, user_id=str(user.id), section_id=str(section_id))

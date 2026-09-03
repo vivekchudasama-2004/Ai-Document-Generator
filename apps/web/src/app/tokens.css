@@ -313,6 +313,55 @@ button[aria-pressed="true"] .theme-icon {
   color: var(--ink);
 }
 
+/* ---------- 100%-human celebration (CSS-only confetti) ---------- */
+.confetti-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--good);
+}
+
+.confetti {
+  display: inline-flex;
+  gap: 3px;
+}
+
+.confetti i {
+  width: 6px;
+  height: 6px;
+  border-radius: 2px;
+  animation: pop 0.9s ease-out infinite;
+}
+
+.confetti i:nth-child(3n) {
+  background: var(--accent);
+}
+
+.confetti i:nth-child(3n + 1) {
+  background: var(--good);
+  animation-delay: 0.15s;
+}
+
+.confetti i:nth-child(3n + 2) {
+  background: #eab308;
+  animation-delay: 0.3s;
+}
+
+@keyframes pop {
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: translateY(-4px) scale(1.25);
+    opacity: 0.7;
+  }
+}
+
 /* ---------- view-transition theme wipe ---------- */
 ::view-transition-old(root),
 ::view-transition-new(root) {

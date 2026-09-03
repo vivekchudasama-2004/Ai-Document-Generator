@@ -22,6 +22,7 @@ MESSAGES: dict[str, str] = {
     CODE.EXPORT_FILE_GONE: "The export file is missing. Export again from the studio.",
     CODE.TEMPLATE_UNKNOWN: "We don't have that template yet.",
     CODE.ROLE_INVALID: "Role must be user or admin.",
+    CODE.SECTION_BAD_MOVE: "Sections move up or down, one step at a time.",
     # --- models / AI ---
     CODE.MODEL_NOT_ALLOWED: "That model isn't available right now ({model}). Pick another from the list.",
     CODE.MODEL_EMPTY_RESPONSE: "The model returned nothing. Try again in a moment.",

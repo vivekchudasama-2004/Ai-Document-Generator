@@ -1,5 +1,6 @@
 # DocuForge Humanized — Detailed Architecture & Project Plan
-**Version:** 1.7.0 | **Date:** 2026-09-03 | **Stack:** Open-Source + NVIDIA NIM on Vercel + TiDB Cloud | **Format:** Professional, 150 words/page, 100% Human Score Target
+**Version:** 1.8.0 | **Date:** 2026-09-03 | **Stack:** Open-Source + NVIDIA NIM on Vercel + TiDB Cloud | **Format:** Professional, 150 words/page, 100% Human Score Target
+**Changelog v1.8.0:** Outline reorder (`POST /sections/{id}/move` + studio ↑/↓, 39th endpoint); CSP + `X-Request-Id` middleware (S11/S14 closed); 100%-human confetti; `docs/HUMANIZATION_GUIDE.md`.
 **Changelog v1.7.1:** Decluttered auth (password row + divider + ghost CTAs), Newsreader italic accents, opencode-style available-only picker, snappier theme wipe (360 ms + icon spin).
 **Changelog v1.6.0:** Real Cloudinary signed uploads; Sapling blend fallback; per-doc usage ledger + admin tokens/audits; cover + exact-TOC export; SSE model.fallback events; per-model prompt rails; tests sealed off-network.
 **Changelog v1.5.1:** ErrorBoundary isolation — per-section studio cards, console, dashboard panels, wizard, admin list, page-level fallback; one crash never kills a page.
@@ -40,7 +41,7 @@ DocuForge Humanized is an end-to-end document intelligence platform that lets an
 - **Portability:** Identical local/prod API contract via shared Vercel env parity; pinned images/lockfiles (`pnpm-lock.yaml`, `requirements.txt`). No Docker.
 
 ## 5. User Flow & Interaction Design
-**Flow:** Dashboard (project cards + templates) → New Document (form: title, idea 1-2 lines, type, tone, depth, audience) → Generation Studio (3-pane: left outline with word count + detector badge per section; center paginated paper preview with shadows and serif headings; right Humanize Console with score ring, iteration history, strength slider) → streaming sections appear with skeleton → per-section Humanize button → Export. **Key Interactions:** Drag outline to reorder, click section to jump, before/after diff toggle, "Humanize All" batch. **Empty State:** Ghost document with 3 clickable examples (“E-commerce RDD”, “AI SaaS PRD”). **States:** Loading skeletons, empty with CTA, error with retry, success toast on export.
+**Flow:** Dashboard (project cards + templates) → New Document (form: title, idea 1-2 lines, type, tone, depth, audience) → Generation Studio (3-pane: left outline with word count + detector badge per section; center paginated paper preview with shadows and serif headings; right Humanize Console with score ring, iteration history, strength slider) → streaming sections appear with skeleton → per-section Humanize button → reorder outline with ↑/↓ per card → Export. **Key Interactions:** ↑/↓ reorder per section card, click section to jump, before/after diff toggle, "Humanize All" batch. **Empty State:** Ghost document with 3 clickable examples (“E-commerce RDD”, “AI SaaS PRD”). **States:** Loading skeletons, empty with CTA, error with retry, success toast on export.
 
 ## 6. System Architecture
 
@@ -137,7 +138,7 @@ Base URL: `http://localhost:8000` | Auth: JWT enforced globally — every `/api/
 | 4 | `POST` | `/api/auth/reset-password` | Reset via token | `{token, newPassword}` | `{reset:true}` | Validates expiry+unused, bcrypt update, marks used |
 | 5 | `GET` | `/api/auth/me` | Current user | `Bearer JWT` | `{id,email,display_name}` | Guard for `(main)` |
 
-### 11.2 Core APIs (38 endpoints)
+### 11.2 Core APIs (39 endpoints)
 
 | # | Method | Endpoint | Purpose | Request Body / Params | Response | Notes |
 |---|--------|----------|---------|----------------------|----------|-------|
@@ -179,6 +180,7 @@ Base URL: `http://localhost:8000` | Auth: JWT enforced globally — every `/api/
 | 36 | `PUT` | `/api/admin/users/{id}/role` | Set role (admin) | `{role:"user\|admin"}` | `{id, role}` | UUID id; audit-logged |
 | 37 | `GET` | `/api/admin/stats` | Usage stats (admin) | — | `{users, docs, tokens_by_model}` | Admin dashboard |
 | 38 | `GET` | `/api/documents/{id}/versions` | List version snapshots | — | `{items:[{version_no, created_at}]}` | Powers studio Versions card |
+| 39 | `POST` | `/api/sections/{id}/move` | Reorder outline | `{direction:"up\|down"}` | `{id, order_idx, moved}` | Swaps with neighbour; `moved:false` at edges; 422 `SECTION_BAD_MOVE` |
 
 **Validation & access:** Global auth dependency (401 without JWT; only `GET /api/health` public). All resource IDs UUID v4 (422/404 on invalid, no sequential ints ever). All data endpoints scoped `WHERE user_id = me` (return 404, not 403, on another user's UUID to avoid existence oracle). Pydantic 422 on bad input, XSS-escaped markdown + sanitized SVG, CORS prod + previews, `X-Request-Id` logged.
 
@@ -395,7 +397,7 @@ scripts/           # migrate.sh, seed.sh
 **Vercel Deploy:** `apps/web` → `vercel --prod` (Next.js), `apps/api` → Vercel Python runtime (`api/index.py` → `app.main:app`), both share `TIDB_URL`, `NVIDIA_NIM_API_KEY`, `JWT_SECRET`, `RESEND_API_KEY` via Vercel Env. No Docker. Local: `pnpm dev` (web 3000) + `uvicorn apps/api/src/app/main.py:app --reload --port 8000`.
 
 ## 13. UI/UX Design System — Outstanding & User-Friendly (Not AI-Generic)
-**Tokens (`tokens.css`):** `--paper: #FFFBF5; --ink: #141210; --accent: #FF6B35; --muted: #6B7280; --border: #E7E0D6; --radius: 14px; --shadow-paper: 0 20px 60px rgba(20,18,16,0.12)`. **Typography:** Newsreader 700 for H1/H2 (tight -0.02em), Inter 400/600 for body, JetBrains Mono for code. **Layout:** Dashboard grid of project cards (paper texture), studio 3-pane with resizable gutters, center paper has realistic shadow and page curl. **Motion:** Section streaming fade-in 200ms, score ring spring, paper lift on hover. **A11y:** Focus rings, 44px targets, keyboard nav, `prefers-reduced-motion`. **Craft:** Empty ghost doc, error with retry, loading skeletons per section, success confetti on 100% human. **Theme:** light/dark via `ThemeContext` + `html.dark` CSS-var overrides (persisted `df-theme`, OS default, no-flash inline script); toggle in sidebar + landing. **Watermelon borrows:** variable-driven theming, bento stats strip on dashboard, lift-on-hover cards, animated score rings.
+**Tokens (`tokens.css`):** `--paper: #FFFBF5; --ink: #141210; --accent: #FF6B35; --muted: #6B7280; --border: #E7E0D6; --radius: 14px; --shadow-paper: 0 20px 60px rgba(20,18,16,0.12)`. **Typography:** Newsreader 700 for H1/H2 (tight -0.02em), Inter 400/600 for body, JetBrains Mono for code. **Layout:** Dashboard grid of project cards (paper texture), studio 3-pane with resizable gutters, center paper has realistic shadow and page curl. **Motion:** Section streaming fade-in 200ms, score ring spring, paper lift on hover. **A11y:** Focus rings, 44px targets, keyboard nav, `prefers-reduced-motion`. **Craft:** Empty ghost doc, error with retry, loading skeletons per section, CSS confetti + "Reads fully human" state at doc avg ≥95%. **Theme:** light/dark via `ThemeContext` + `html.dark` CSS-var overrides (persisted `df-theme`, OS default, no-flash inline script); toggle in sidebar + landing. **Watermelon borrows:** variable-driven theming, bento stats strip on dashboard, lift-on-hover cards, animated score rings.
 
 ## 14. Security, Deployment & DevOps (Vercel Free Tier — No Docker/Nginx)
 - **Security:** Validate all input (Pydantic), escape markdown + sanitize Mermaid SVG (`nh3`/`bleach`, strip `<script>`/`on*`), rate-limit (`slowapi` 60/min; forgot `5/min`/IP), CSP headers (`img-src data:` for inline SVG), bcrypt + JWT (access 1h, refresh 7d with rotation + reuse detection; httpOnly `Secure; SameSite=Lax` cookie for web, Bearer for API), no secrets in logs, `.env` gitignored, `npm audit`/`pip-audit` clean, TiDB TLS `ssl_ca`. CORS: prod `https://<app>.vercel.app` + previews `https://*.vercel.app` (or BFF proxy to skip CORS).

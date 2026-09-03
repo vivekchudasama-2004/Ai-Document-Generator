@@ -53,10 +53,24 @@ app.add_middleware(
 
 @app.middleware("http")
 async def security_headers(request: Request, call_next):
+    request_id = request.headers.get("X-Request-Id", "")
+    if not request_id or len(request_id) > 64:
+        import uuid as _uuid
+        request_id = _uuid.uuid4().hex[:16]
     response = await call_next(request)
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
     response.headers["X-Frame-Options"] = "DENY"
+    # Inline Mermaid SVGs ride as data: URIs — allow them, nothing else.
+    response.headers["Content-Security-Policy"] = (
+        "default-src 'self'; img-src 'self' data:; "
+        "script-src 'self'; style-src 'self' 'unsafe-inline'; "
+        "connect-src 'self'; frame-ancestors 'none'"
+    )
+    response.headers["X-Request-Id"] = request_id
+    logging.getLogger("docuforge").info("request %s %s id=%s status=%s",
+                                        request.method, request.url.path,
+                                        request_id, response.status_code)
     return response
 
 

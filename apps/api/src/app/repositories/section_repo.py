@@ -20,3 +20,17 @@ def update_content(db: Session, row: Section, content_md: str, word_count: int) 
     db.commit()
     db.refresh(row)
     return row
+
+
+def ordered_siblings(db: Session, document_id: str) -> list[Section]:
+    return (
+        db.query(Section)
+        .filter(Section.document_id == document_id)
+        .order_by(Section.order_idx, Section.id)
+        .all()
+    )
+
+
+def swap_order(db: Session, first: Section, second: Section) -> None:
+    first.order_idx, second.order_idx = second.order_idx, first.order_idx
+    db.commit()

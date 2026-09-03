@@ -33,6 +33,10 @@ export type SectionCardProps = {
   onCancelEdit: () => void;
   onSaveEdit: () => void;
   onHumanize: () => void;
+  onMoveUp: () => void;
+  onMoveDown: () => void;
+  isFirst: boolean;
+  isLast: boolean;
   diffText: string | null;
   onToggleDiff: () => void;
 };
@@ -49,6 +53,10 @@ export default function SectionCard({
   onCancelEdit,
   onSaveEdit,
   onHumanize,
+  onMoveUp,
+  onMoveDown,
+  isFirst,
+  isLast,
   diffText,
   onToggleDiff,
 }: SectionCardProps) {
@@ -107,6 +115,26 @@ export default function SectionCard({
             >
               {diffText ? "Hide diff" : "Diff"}
             </button>
+            <span className="ml-auto flex gap-1" role="group" aria-label={`Reorder ${section.title}`}>
+              <button
+                className="btn-ghost px-3 py-2 text-sm font-bold"
+                disabled={actionsDisabled || isFirst}
+                onClick={onMoveUp}
+                aria-label={`Move ${section.title} up`}
+                title="Move up"
+              >
+                ↑
+              </button>
+              <button
+                className="btn-ghost px-3 py-2 text-sm font-bold"
+                disabled={actionsDisabled || isLast}
+                onClick={onMoveDown}
+                aria-label={`Move ${section.title} down`}
+                title="Move down"
+              >
+                ↓
+              </button>
+            </span>
           </>
         )}
       </div>

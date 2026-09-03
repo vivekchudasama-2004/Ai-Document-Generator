@@ -94,6 +94,21 @@ export default function StudioPage({ params }: { params: Promise<{ id: string }>
     }
   }
 
+  async function moveSection(sectionId: string, direction: "up" | "down") {
+    setBusySectionId(sectionId);
+    try {
+      await api(`/api/sections/${sectionId}/move`, {
+        method: "POST",
+        body: JSON.stringify({ direction }),
+      });
+      await loadDocument();
+    } catch (err) {
+      setNotice(err instanceof ApiError ? err.message : "Move failed.");
+    } finally {
+      setBusySectionId(null);
+    }
+  }
+
   async function toggleSectionDiff(sectionId: string) {
     if (diffsBySection[sectionId]) {
       setDiffsBySection((previous) => {
@@ -215,7 +230,7 @@ export default function StudioPage({ params }: { params: Promise<{ id: string }>
         </nav>
 
         <div className="space-y-5">
-          {document.sections.map((section) => (
+          {document.sections.map((section, index) => (
             // One bad section must never kill the studio: each card is isolated.
             <ErrorBoundary key={section.id} label={`“${section.title}” section`}>
               <SectionCard
@@ -232,6 +247,10 @@ export default function StudioPage({ params }: { params: Promise<{ id: string }>
               onCancelEdit={() => setEditingSectionId(null)}
               onSaveEdit={() => saveSectionEdit(section.id)}
               onHumanize={() => humanizeSection(section.id)}
+              onMoveUp={() => moveSection(section.id, "up")}
+              onMoveDown={() => moveSection(section.id, "down")}
+              isFirst={index === 0}
+              isLast={index === document.sections.length - 1}
               diffText={diffsBySection[section.id] ?? null}
               onToggleDiff={() => toggleSectionDiff(section.id)}
             />
@@ -248,6 +267,16 @@ export default function StudioPage({ params }: { params: Promise<{ id: string }>
               Average across {document.sections.length} sections. Target 95%+.
             </p>
           </div>
+          {(document.human_score_avg ?? 0) >= 95 ? (
+            <p className="confetti-line" role="status">
+              <span className="confetti" aria-hidden>
+                {Array.from({ length: 9 }).map((_, i) => (
+                  <i key={i} />
+                ))}
+              </span>
+              Reads fully human.
+            </p>
+          ) : null}
           <dl className="mt-4 space-y-2 text-sm">
             <div className="flex justify-between">
               <dt className="text-[var(--muted)]">Writing model</dt>
