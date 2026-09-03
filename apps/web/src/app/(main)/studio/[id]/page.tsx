@@ -3,6 +3,7 @@
 import { use, useEffect, useState } from "react";
 import { api, ApiError } from "@/lib/api/client";
 import { ScoreRing, SectionSkeleton, Toast } from "@/components/ui/ui";
+import MermaidBlock from "@/components/features/MermaidBlock";
 import type { DocumentDetail, Section } from "@/types";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
@@ -17,9 +18,7 @@ function CodeBlock({ text }: { text: string }) {
     <div>
       <p className="whitespace-pre-wrap leading-relaxed">{prose}</p>
       {mermaid.map((m, i) => (
-        <pre key={i} className="bg-code mt-3 overflow-x-auto rounded-lg p-4 font-mono text-xs">
-          {m}
-        </pre>
+        <MermaidBlock key={i} code={m} />
       ))}
     </div>
   );
@@ -33,10 +32,52 @@ export default function StudioPage({ params }: { params: Promise<{ id: string }>
   const [editing, setEditing] = useState<string | null>(null);
   const [draft, setDraft] = useState("");
   const [notice, setNotice] = useState("");
+  const [diffs, setDiffs] = useState<Record<string, string>>({});
+  const [versions, setVersions] = useState<{ version_no: number; created_at: string }[]>([]);
+
+  async function toggleDiff(sectionId: string) {
+    if (diffs[sectionId]) {
+      setDiffs((d) => {
+        const next = { ...d };
+        delete next[sectionId];
+        return next;
+      });
+      return;
+    }
+    try {
+      const r = await api<{ diff_unified: string }>("/api/humanize/compare", {
+        method: "POST",
+        body: JSON.stringify({ section_id: sectionId }),
+      });
+      setDiffs((d) => ({
+        ...d,
+        [sectionId]: r.diff_unified || "(no changes yet — humanize this section first)",
+      }));
+    } catch (err) {
+      setNotice(err instanceof ApiError ? err.message : "Diff failed.");
+    }
+  }
+
+  async function restoreVersion(versionNo: number) {
+    setBusy(`restore-${versionNo}`);
+    try {
+      await api(`/api/documents/${id}/restore/${versionNo}`, { method: "POST" });
+      setNotice(`Restored version ${versionNo}.`);
+      await load();
+    } catch (err) {
+      setNotice(err instanceof ApiError ? err.message : "Restore failed.");
+    } finally {
+      setBusy(null);
+    }
+  }
 
   async function load() {
     try {
       setDoc(await api<DocumentDetail>(`/api/documents/${id}`));
+      const v = await api<{ items: { version_no: number; created_at: string }[] }>(
+        `/api/documents/${id}/versions`,
+      );
+      setVersions(v.items);
     } catch {
       setError("Couldn't open this document.");
     }
@@ -169,9 +210,16 @@ export default function StudioPage({ params }: { params: Promise<{ id: string }>
                       onClick={() => humanize(s.id)}>
                       {busy === s.id ? "Rewriting…" : "Humanize"}
                     </button>
+                    <button className="btn-ghost px-4 py-2 text-sm font-semibold" disabled={busy !== null}
+                      onClick={() => toggleDiff(s.id)}>
+                      {diffs[s.id] ? "Hide diff" : "Diff"}
+                    </button>
                   </>
                 )}
               </div>
+              {diffs[s.id] ? (
+                <pre className="bg-code mt-3 overflow-x-auto rounded-lg p-4 font-mono text-xs">{diffs[s.id]}</pre>
+              ) : null}
             </article>
           ))}
         </div>
@@ -187,6 +235,27 @@ export default function StudioPage({ params }: { params: Promise<{ id: string }>
             <div className="flex justify-between"><dt className="text-[var(--muted)]">Humanizer</dt><dd className="font-mono text-xs">{doc.humanize_model.split("/").pop()}</dd></div>
             <div className="flex justify-between"><dt className="text-[var(--muted)]">Status</dt><dd className="font-semibold">{doc.status}</dd></div>
           </dl>
+          <div className="mt-4 border-t border-[var(--border)] pt-3">
+            <h4 className="text-sm font-bold">Versions</h4>
+            {!versions.length ? (
+              <p className="mt-1 text-sm text-[var(--muted)]">No snapshots yet.</p>
+            ) : (
+              <ul className="mt-2 space-y-1">
+                {versions.map((v) => (
+                  <li key={v.version_no} className="flex items-center justify-between text-sm">
+                    <span>v{v.version_no}</span>
+                    <button
+                      className="btn-ghost px-3 py-1 text-xs font-semibold"
+                      disabled={busy !== null}
+                      onClick={() => restoreVersion(v.version_no)}
+                    >
+                      Restore
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
         </aside>
       </div>
     </div>

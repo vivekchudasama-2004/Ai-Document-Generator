@@ -111,6 +111,20 @@ def delete_doc(document_id: UUID, user=Depends(get_current_user), db: Session = 
     return {"deleted": True}
 
 
+@router.get("/documents/{document_id}/versions")
+def list_versions(document_id: UUID, user=Depends(get_current_user), db: Session = Depends(get_db)):
+    row = document_repo.get_owned(db, user_id=str(user.id), document_id=str(document_id))
+    if not row:
+        raise HTTPException(status_code=404, detail="Not found")
+    versions = (
+        db.query(Version)
+        .filter(Version.document_id == str(document_id))
+        .order_by(Version.version_no.desc())
+        .all()
+    )
+    return {"items": [{"version_no": v.version_no, "created_at": v.created_at} for v in versions]}
+
+
 @router.post("/documents/{document_id}/duplicate")
 def duplicate(document_id: UUID, user=Depends(get_current_user), db: Session = Depends(get_db)):
     row = document_repo.get_owned(db, user_id=str(user.id), document_id=str(document_id))

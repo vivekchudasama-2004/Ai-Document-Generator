@@ -13,11 +13,35 @@ class Base(DeclarativeBase):
     pass
 
 
+def normalize_url(url: str) -> str:
+    if url.startswith("mysql://"):
+        # TiDB dashboard hands out mysql:// — force the pure-python driver.
+        return "mysql+pymysql://" + url[len("mysql://"):]
+    return url
+
+
+def connect_args_for(url: str) -> dict:
+    """TiDB Serverless refuses insecure transport — force TLS via certifi
+    when the URL itself carries no ssl params."""
+    if "tidbcloud.com" in url and "ssl" not in url:
+        try:
+            import certifi
+
+            return {"ssl": {"ca": certifi.where()}}
+        except Exception:
+            return {}
+    return {}
+
+
 def _build():
     url = get_settings().TIDB_URL
     if not url:
         return None, None
-    engine = create_engine(url, pool_pre_ping=True, pool_recycle=300)
+    url = normalize_url(url)
+    engine = create_engine(
+        url, connect_args=connect_args_for(url),
+        pool_pre_ping=True, pool_recycle=300,
+    )
     return engine, sessionmaker(bind=engine, autoflush=False, autocommit=False)
 
 

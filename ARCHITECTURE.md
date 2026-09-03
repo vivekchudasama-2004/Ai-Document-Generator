@@ -133,7 +133,7 @@ Base URL: `http://localhost:8000` | Auth: JWT enforced globally — every `/api/
 | 4 | `POST` | `/api/auth/reset-password` | Reset via token | `{token, newPassword}` | `{reset:true}` | Validates expiry+unused, bcrypt update, marks used |
 | 5 | `GET` | `/api/auth/me` | Current user | `Bearer JWT` | `{id,email,display_name}` | Guard for `(main)` |
 
-### 11.2 Core APIs (30 endpoints)
+### 11.2 Core APIs (38 endpoints)
 
 | # | Method | Endpoint | Purpose | Request Body / Params | Response | Notes |
 |---|--------|----------|---------|----------------------|----------|-------|
@@ -174,6 +174,7 @@ Base URL: `http://localhost:8000` | Auth: JWT enforced globally — every `/api/
 | 35 | `GET` | `/api/admin/users` | List users (admin) | `?q=&limit=&offset=` | `{items:[{id(UUID),email,display_name,role,created_at}], total}` | `require_role(admin)` |
 | 36 | `PUT` | `/api/admin/users/{id}/role` | Set role (admin) | `{role:"user\|admin"}` | `{id, role}` | UUID id; audit-logged |
 | 37 | `GET` | `/api/admin/stats` | Usage stats (admin) | — | `{users, docs, tokens_by_model}` | Admin dashboard |
+| 38 | `GET` | `/api/documents/{id}/versions` | List version snapshots | — | `{items:[{version_no, created_at}]}` | Powers studio Versions card |
 
 **Validation & access:** Global auth dependency (401 without JWT; only `GET /api/health` public). All resource IDs UUID v4 (422/404 on invalid, no sequential ints ever). All data endpoints scoped `WHERE user_id = me` (return 404, not 403, on another user's UUID to avoid existence oracle). Pydantic 422 on bad input, XSS-escaped markdown + sanitized SVG, CORS prod + previews, `X-Request-Id` logged.
 

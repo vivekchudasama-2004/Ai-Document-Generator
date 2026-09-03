@@ -1,12 +1,21 @@
 """Central env contract (ARCHITECTURE.md Appendix C). Tolerant at boot —
 health reports what is missing; data endpoints 503 without TIDB_URL."""
 from functools import lru_cache
+from pathlib import Path
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
+def _env_files() -> list[str]:
+    """Find .env walking up from the launch dir, so `uvicorn` works from
+    repo root, apps/api, or apps/api/src with one root .env."""
+    here = Path.cwd().resolve()
+    found = [str(p / ".env") for p in [here, *here.parents[:4]] if (p / ".env").is_file()]
+    return found or [".env"]
+
+
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+    model_config = SettingsConfigDict(env_file=_env_files(), extra="ignore")
 
     TIDB_URL: str = ""
     NVIDIA_NIM_API_KEY: str = ""
@@ -19,6 +28,7 @@ class Settings(BaseSettings):
     )
     JWT_SECRET: str = "dev-only-change-me"
     JWT_EXPIRE_MIN: int = 60
+    COOKIE_SECURE: bool = False  # True in prod (Vercel = https)
     REFRESH_EXPIRE_DAYS: int = 7
     RESEND_API_KEY: str = ""
     RESEND_FROM: str = "DocuForge <noreply@example.com>"

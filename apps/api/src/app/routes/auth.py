@@ -12,12 +12,20 @@ from app.schemas.auth import (
 from app.services import auth_service
 
 router = APIRouter(tags=["auth"])
-COOKIE_KWARGS = {"httponly": True, "secure": True, "samesite": "lax", "path": "/"}
+
+
+def _cookie_kwargs() -> dict:
+    return {
+        "httponly": True,
+        "secure": get_settings().COOKIE_SECURE,  # True in prod (https), False local
+        "samesite": "lax",
+        "path": "/",
+    }
 
 
 def _pair_response(user, response: Response) -> TokenPair:
     pair = auth_service.issue_pair(user)
-    response.set_cookie("access_token", pair["access_token"], max_age=3600, **COOKIE_KWARGS)
+    response.set_cookie("access_token", pair["access_token"], max_age=3600, **_cookie_kwargs())
     return TokenPair(**pair)
 
 
@@ -49,7 +57,7 @@ def refresh(body: RefreshIn, response: Response, db: Session = Depends(get_db)):
         pair = auth_service.refresh(db, body.refresh_token)
     except ValueError:
         raise HTTPException(status_code=401, detail="Invalid refresh token")
-    response.set_cookie("access_token", pair["access_token"], max_age=3600, **COOKIE_KWARGS)
+    response.set_cookie("access_token", pair["access_token"], max_age=3600, **_cookie_kwargs())
     return pair
 
 

@@ -50,7 +50,7 @@ def count_words(text: str) -> int:
     nlp = _nlp()
     if nlp is not None:
         try:
-            return sum(1 for t in nlp(text) if not t.is_space)
+            return sum(1 for t in nlp(text) if not t.is_space and not t.is_punct)
         except Exception:
             pass
     return len(_words(text))

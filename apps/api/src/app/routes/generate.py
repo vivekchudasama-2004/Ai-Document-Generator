@@ -32,6 +32,7 @@ def _persist(db: Session, *, user_id: str, body: GenerateIn, sections: list[dict
         score = score_text(s["content_md"])
         scored.append({**s, "ai_score": score["ai_prob"], "human_score": score["human_percent"]})
     rows = document_repo.add_sections(db, doc.id, scored)
+    document_repo.snapshot(db, document_id=doc.id, sections=rows)  # v1
     doc.status = "ready"
     db.commit()
     return doc, rows

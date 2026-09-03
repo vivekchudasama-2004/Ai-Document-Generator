@@ -48,6 +48,18 @@ def client():
     app.dependency_overrides.clear()
 
 
+@pytest.fixture(autouse=True)
+def _reset_rate_limits(client):
+    """Prod rate limits stay on; counters reset per test so the suite
+    never trips 5/min auth guards from a single test IP."""
+    from app.main import app
+
+    try:
+        app.state.limiter._storage.reset()
+    except Exception:
+        pass
+
+
 @pytest.fixture()
 def auth_headers(client):
     import uuid as _uuid

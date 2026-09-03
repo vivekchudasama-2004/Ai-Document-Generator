@@ -5,7 +5,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from app.core.config import get_settings
-from app.db.client import Base
+from app.db.client import Base, connect_args_for, normalize_url
 
 import app.entities.user  # noqa: F401
 import app.entities.project  # noqa: F401
@@ -18,6 +18,7 @@ if not get_settings().TIDB_URL:
 
 from sqlalchemy import create_engine  # noqa: E402
 
-engine = create_engine(get_settings().TIDB_URL, pool_pre_ping=True)
+tidb_url = normalize_url(get_settings().TIDB_URL)
+engine = create_engine(tidb_url, connect_args=connect_args_for(tidb_url), pool_pre_ping=True)
 Base.metadata.create_all(bind=engine)
 print(f"tables ready: {sorted(Base.metadata.tables)}")
