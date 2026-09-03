@@ -38,3 +38,9 @@ class ForgotIn(BaseModel):
 class ResetIn(BaseModel):
     token: str = Field(min_length=16, max_length=128)
     new_password: str = Field(min_length=8, max_length=128)
+
+
+class ProfileUpdateIn(BaseModel):
+    display_name: str | None = Field(default=None, max_length=100)
+    current_password: str | None = Field(default=None, max_length=128)
+    new_password: str | None = Field(default=None, min_length=8, max_length=128)

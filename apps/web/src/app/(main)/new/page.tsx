@@ -8,10 +8,10 @@ import { apiStream, ApiError } from "@/lib/api/client";
 import { FieldError, SectionSkeleton, Toast } from "@/components/ui/ui";
 import type { DocType } from "@/types";
 
-const TYPES: { id: DocType; label: string }[] = [
-  { id: "rdd", label: "RDD — Requirements & Design" },
-  { id: "prd", label: "PRD — Product Requirements" },
-  { id: "technical_design", label: "Technical Design" },
+const TYPES: { id: DocType; label: string; hint: string }[] = [
+  { id: "rdd", label: "RDD", hint: "Requirements & Design" },
+  { id: "prd", label: "PRD", hint: "Product Requirements" },
+  { id: "technical_design", label: "Technical Design", hint: "Components & interfaces" },
 ];
 
 export default function NewDocPage() {
@@ -65,7 +65,7 @@ export default function NewDocPage() {
       <h1 className="font-display text-3xl font-bold">New document</h1>
       <p className="mt-1 text-[var(--muted)]">Idea → drafted, scored sections in about a minute.</p>
       <ErrorBoundary label="document wizard">
-      <form onSubmit={submit} className="paper-card mt-6 space-y-5 p-6" noValidate>
+      <form onSubmit={submit} className="paper-card mt-6 space-y-5 p-5 sm:p-6" noValidate>
         <div>
           <label className="text-sm font-semibold" htmlFor="title">Title</label>
           <input id="title" className="field mt-1" value={title}
@@ -80,10 +80,10 @@ export default function NewDocPage() {
           <FieldError message={errors.idea} />
         </div>
         <div className="grid gap-4 md:grid-cols-3">
-          <label className="block">
+          <label className="block min-w-0">
             <span className="text-sm font-semibold">Type</span>
-            <select className="field mt-1" value={docType} onChange={(e) => setDocType(e.target.value as DocType)}>
-              {TYPES.map((t) => <option key={t.id} value={t.id}>{t.label}</option>)}
+            <select className="field mt-1 truncate" value={docType} onChange={(e) => setDocType(e.target.value as DocType)}>
+              {TYPES.map((t) => <option key={t.id} value={t.id} title={`${t.label} — ${t.hint}`}>{t.label} — {t.hint}</option>)}
             </select>
           </label>
           <label className="block">

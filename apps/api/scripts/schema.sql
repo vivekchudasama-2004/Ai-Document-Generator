@@ -109,3 +109,14 @@ CREATE TABLE versions (
 	PRIMARY KEY (id), 
 	FOREIGN KEY(document_id) REFERENCES documents (id) ON DELETE CASCADE
 );
+
+CREATE TABLE user_models (
+	id VARCHAR(36) NOT NULL,
+	user_id VARCHAR(36) NOT NULL,
+	model_id VARCHAR(128) NOT NULL,
+	enabled BOOLEAN NOT NULL DEFAULT TRUE,
+	added_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+	PRIMARY KEY (id),
+	UNIQUE KEY uq_user_model (user_id, model_id),
+	FOREIGN KEY(user_id) REFERENCES users (id) ON DELETE CASCADE
+);

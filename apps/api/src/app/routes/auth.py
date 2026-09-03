@@ -9,7 +9,7 @@ from app.core.security import get_current_user
 from app.db.client import get_db
 from app.repositories import user_repo
 from app.schemas.auth import (
-    ForgotIn, LoginIn, MeOut, RefreshIn, ResetIn, SignupIn, TokenPair,
+    ForgotIn, LoginIn, MeOut, ProfileUpdateIn, RefreshIn, ResetIn, SignupIn, TokenPair,
 )
 from app.services import auth_service
 
@@ -74,6 +74,24 @@ def me(user=Depends(get_current_user), db: Session = Depends(get_db)):
     row = user_repo.get_by_id(db, str(user.id))
     if not row:
         fail(404, CODES.AUTH_NO_ACCOUNT)
+    return MeOut(id=row.id, email=row.email, display_name=row.display_name, role=row.role)
+
+
+@router.put("/auth/me", response_model=MeOut)
+def update_me(body: ProfileUpdateIn, user=Depends(get_current_user), db: Session = Depends(get_db)):
+    """Edit display name and/or rotate password (current password required)."""
+    row = user_repo.get_by_id(db, str(user.id))
+    if not row:
+        fail(404, CODES.AUTH_NO_ACCOUNT)
+    if body.new_password:
+        if not body.current_password:
+            fail(401, CODES.AUTH_BAD_CREDENTIALS)
+        try:
+            user_repo.change_password(db, row, current_password=body.current_password,
+                                      new_password=body.new_password)
+        except ValueError:
+            fail(401, CODES.AUTH_BAD_CREDENTIALS)
+    row = user_repo.update_profile(db, row, display_name=body.display_name)
     return MeOut(id=row.id, email=row.email, display_name=row.display_name, role=row.role)
 
 

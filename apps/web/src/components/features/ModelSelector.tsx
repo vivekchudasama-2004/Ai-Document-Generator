@@ -94,7 +94,6 @@ export default function ModelSelector({
     options: ModelInfo[],
     current: string,
     field: keyof ModelChoice,
-    autoHint: string,
   ) => (
     <label className="block">
       <span className="text-sm font-semibold">{label}</span>
@@ -103,7 +102,7 @@ export default function ModelSelector({
         value={current || AUTO_VALUE}
         onChange={(event) => onChange({ ...value, [field]: event.target.value })}
       >
-        <option value={AUTO_VALUE}>Auto (recommended) — {autoHint}</option>
+        <option value={AUTO_VALUE}>Auto (recommended)</option>
         {options.map((model) => (
           <option key={model.id} value={model.id}>
             {model.label} · {model.cost}
@@ -116,8 +115,8 @@ export default function ModelSelector({
   return (
     <div>
       <div className="grid gap-3 md:grid-cols-2">
-        {pick("Writing model", generationPool, value.generation, "generation", "cheapest fit")}
-        {pick("Humanizing model", humanizePool, value.humanize, "humanize", "8B default")}
+        {pick("Writing model", generationPool, value.generation, "generation")}
+        {pick("Humanizing model", humanizePool, value.humanize, "humanize")}
       </div>
       <div className="mt-2 flex items-center justify-between gap-3">
         <p className="text-xs text-[var(--muted)]">

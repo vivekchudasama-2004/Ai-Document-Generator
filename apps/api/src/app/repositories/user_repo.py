@@ -34,6 +34,25 @@ def set_role(db: Session, user: User, role: str) -> User:
     return user
 
 
+def update_profile(db: Session, user: User, *, display_name: str | None) -> User:
+    if display_name is not None:
+        user.display_name = display_name.strip() or None
+    db.commit()
+    db.refresh(user)
+    return user
+
+
+def change_password(db: Session, user: User, *, current_password: str, new_password: str) -> User:
+    from app.core import security
+
+    if not security.verify_password(current_password, user.password_hash):
+        raise ValueError("Current password is wrong")
+    user.password_hash = security.hash_password(new_password)
+    db.commit()
+    db.refresh(user)
+    return user
+
+
 def save_reset_token(db: Session, *, user_id: str, token: str, expires_at) -> PasswordResetToken:
     row = PasswordResetToken(user_id=user_id, token=token, expires_at=expires_at)
     db.add(row)

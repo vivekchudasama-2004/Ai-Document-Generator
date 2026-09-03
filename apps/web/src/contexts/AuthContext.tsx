@@ -13,6 +13,7 @@ type AuthCtx = {
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
   signup: (email: string, password: string, display_name?: string) => Promise<void>;
+  refresh: () => Promise<void>;
   logout: () => Promise<void>;
 };
 
@@ -54,6 +55,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(await api<User>("/api/auth/me"));
   }, []);
 
+  const refresh = useCallback(async () => {
+    setUser(await api<User>("/api/auth/me"));
+  }, []);
+
   const logout = useCallback(async () => {
     await api("/api/auth/logout", { method: "POST" }).catch(() => undefined);
     setToken(null);
@@ -61,7 +66,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     window.location.href = "/login";
   }, []);
 
-  return <Ctx.Provider value={{ user, loading, login, signup, logout }}>{children}</Ctx.Provider>;
+  return <Ctx.Provider value={{ user, loading, login, signup, refresh, logout }}>{children}</Ctx.Provider>;
 }
 
 export function useAuth() {

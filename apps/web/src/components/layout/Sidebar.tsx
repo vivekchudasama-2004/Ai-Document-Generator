@@ -11,6 +11,7 @@ const NAV = [
   { href: "/projects", label: "Projects" },
   { href: "/templates", label: "Templates" },
   { href: "/exports", label: "Exports" },
+  { href: "/profile", label: "Profile" },
   { href: "/settings", label: "Settings" },
 ];
 

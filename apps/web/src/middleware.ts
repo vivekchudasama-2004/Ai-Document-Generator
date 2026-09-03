@@ -8,6 +8,7 @@ const PROTECTED = [
   "/projects",
   "/templates",
   "/exports",
+  "/profile",
   "/settings",
   "/admin",
 ];

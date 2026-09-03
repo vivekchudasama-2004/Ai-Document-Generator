@@ -1,5 +1,6 @@
 # DocuForge Humanized — Detailed Architecture & Project Plan
-**Version:** 1.8.1 | **Date:** 2026-09-03 | **Stack:** Open-Source + NVIDIA NIM on Vercel + TiDB Cloud | **Format:** Professional, 150 words/page, 100% Human Score Target
+**Version:** 1.9.0 | **Date:** 2026-09-03 | **Stack:** Open-Source + NVIDIA NIM on Vercel + TiDB Cloud | **Format:** Professional, 150 words/page, 100% Human Score Target
+**Changelog v1.9.0:** `/profile` page + `PUT /auth/me` (name edit, password rotation); missing `user_models`/`admin_audits` tables created live; wizard/model selects de-truncated.
 **Changelog v1.8.1:** Studio rewrite-strength selector (light/medium/aggressive, single + batch); `components/fx/Confetti` + `components/layout/Sidebar` extracted; `lib/utils.ts` + `lib/api/server.ts` added; `available` verified on every catalog model.
 **Changelog v1.8.0:** Outline reorder (`POST /sections/{id}/move` + studio ↑/↓, 39th endpoint); CSP + `X-Request-Id` middleware (S11/S14 closed); 100%-human confetti; `docs/HUMANIZATION_GUIDE.md`.
 **Changelog v1.7.1:** Decluttered auth (password row + divider + ghost CTAs), Newsreader italic accents, opencode-style available-only picker, snappier theme wipe (360 ms + icon spin).
@@ -129,7 +130,7 @@ UUID v4 opaque IDs for every table (`CHAR(36) PRIMARY KEY DEFAULT (UUID())`; FK 
 
 Base URL: `http://localhost:8000` | Auth: JWT enforced globally — every `/api/*` requires auth except `GET /api/health` (liveness, no data). Web via httpOnly `Secure; SameSite=Lax` cookie, API via `Authorization: Bearer`; `POST /api/auth/refresh` rotates. JWT carries `role: user|admin`; admin routes guard with `require_role('admin')`. Every data query scoped `WHERE user_id = me` (admin bypass only on `/api/admin/*`) | Rate-limit: `60/min` via `slowapi` (forgot-password `5/min`/IP) | All request/response `application/json` unless noted.
 
-### 11.1 Auth APIs (5 endpoints — JWT + Email)
+### 11.1 Auth APIs (6 endpoints — JWT + Email)
 
 | # | Method | Endpoint | Purpose | Request | Response | Notes |
 |---|--------|----------|---------|---------|----------|-------|
@@ -138,6 +139,7 @@ Base URL: `http://localhost:8000` | Auth: JWT enforced globally — every `/api/
 | 3 | `POST` | `/api/auth/forgot-password` | Request reset email | `{email}` | `{sent:true}` (always true to avoid enumeration) | Creates `password_reset_tokens` (15m), Resend email with `https://<vercel>/reset-password?token=xxx` |
 | 4 | `POST` | `/api/auth/reset-password` | Reset via token | `{token, newPassword}` | `{reset:true}` | Validates expiry+unused, bcrypt update, marks used |
 | 5 | `GET` | `/api/auth/me` | Current user | `Bearer JWT` | `{id,email,display_name}` | Guard for `(main)` |
+| 6 | `PUT` | `/api/auth/me` | Edit profile | `{display_name?, current_password?, new_password?}` | `{id,email,display_name,role}` | Password change needs current (401 otherwise); powers `/profile` |
 
 ### 11.2 Core APIs (39 endpoints)
 
@@ -196,7 +198,7 @@ POST /api/generate {idea:"AI SaaS for invoices", docType:"rdd"}
 
 ## 11B. All Pages — Frontend App + Generated Document Pages
 
-### A) Frontend App Pages (Next.js App Router — 13 routes, Vercel, no Docker)
+### A) Frontend App Pages (Next.js App Router — 15 routes, Vercel, no Docker)
 
 | # | Route | File | Purpose | Key Components | API Calls |
 |---|-------|------|---------|----------------|-----------|
@@ -213,7 +215,8 @@ POST /api/generate {idea:"AI SaaS for invoices", docType:"rdd"}
 | 11 | `/templates` | `apps/web/src/app/(main)/templates/page.tsx` | Template gallery — 12 types with section outlines | `TemplateCard` | `GET /api/templates` |
 | 12 | `/exports` | `apps/web/src/app/(main)/exports/page.tsx` | Exports with download links | `ExportTable` | `GET /api/exports` |
 | 13 | `/settings` | `apps/web/src/app/(main)/settings/page.tsx` | Model catalog + defaults, analyzer status (spaCy/textstat), 150wpp rule, threshold | `EnvStatus, ModelCatalog` | `GET /api/health, GET /api/meta/models` |
-| 14 | `/admin` | `apps/web/src/app/(admin)/page.tsx` | **Admin** (role-gated) — users, role assignment, model catalog, usage stats | `UserTable, ModelCatalog, StatsBar` | `GET /api/admin/users, PUT /api/admin/users/{id}/role, GET /api/admin/stats` |
+| 14 | `/profile` | `apps/web/src/app/(main)/profile/page.tsx` | **Profile** — display name, password rotation, role | `ProfileForm` | `GET /api/auth/me, PUT /api/auth/me` |
+| 15 | `/admin` | `apps/web/src/app/(admin)/page.tsx` | **Admin** (role-gated) — users, role assignment, model catalog, usage stats | `UserTable, ModelCatalog, StatsBar` | `GET /api/admin/users, PUT /api/admin/users/{id}/role, GET /api/admin/stats` |
 
 **Route Groups & Guard:** `(auth)` is public, `(main)` is protected via `apps/web/middleware.ts` + `contexts/AuthContext.tsx` (stores `role` from JWT) → redirects to `/login` if unauthenticated. `(admin)` group (`/admin`) additionally requires `role==='admin'` → else redirect `/dashboard`. `apps/web/src/lib/api/client.ts` attaches `Authorization: Bearer` automatically.
 
