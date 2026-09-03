@@ -1,5 +1,6 @@
 # DocuForge Humanized — Detailed Architecture & Project Plan
-**Version:** 1.8.0 | **Date:** 2026-09-03 | **Stack:** Open-Source + NVIDIA NIM on Vercel + TiDB Cloud | **Format:** Professional, 150 words/page, 100% Human Score Target
+**Version:** 1.8.1 | **Date:** 2026-09-03 | **Stack:** Open-Source + NVIDIA NIM on Vercel + TiDB Cloud | **Format:** Professional, 150 words/page, 100% Human Score Target
+**Changelog v1.8.1:** Studio rewrite-strength selector (light/medium/aggressive, single + batch); `components/fx/Confetti` + `components/layout/Sidebar` extracted; `lib/utils.ts` + `lib/api/server.ts` added; `available` verified on every catalog model.
 **Changelog v1.8.0:** Outline reorder (`POST /sections/{id}/move` + studio ↑/↓, 39th endpoint); CSP + `X-Request-Id` middleware (S11/S14 closed); 100%-human confetti; `docs/HUMANIZATION_GUIDE.md`.
 **Changelog v1.7.1:** Decluttered auth (password row + divider + ghost CTAs), Newsreader italic accents, opencode-style available-only picker, snappier theme wipe (360 ms + icon spin).
 **Changelog v1.6.0:** Real Cloudinary signed uploads; Sapling blend fallback; per-doc usage ledger + admin tokens/audits; cover + exact-TOC export; SSE model.fallback events; per-model prompt rails; tests sealed off-network.

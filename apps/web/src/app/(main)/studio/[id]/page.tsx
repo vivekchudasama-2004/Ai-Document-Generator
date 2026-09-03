@@ -6,8 +6,12 @@ import { ScoreRing, SectionSkeleton, Toast } from "@/components/ui/ui";
 import RefreshButton from "@/components/ui/RefreshButton";
 import SectionCard from "@/components/features/SectionCard";
 import VersionsCard from "@/components/features/VersionsCard";
+import Confetti from "@/components/fx/Confetti";
 import ErrorBoundary from "@/components/ui/ErrorBoundary";
 import type { DocumentDetail } from "@/types";
+
+const STRENGTHS = ["light", "medium", "aggressive"] as const;
+type Strength = (typeof STRENGTHS)[number];
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
@@ -23,6 +27,7 @@ export default function StudioPage({ params }: { params: Promise<{ id: string }>
   const [notice, setNotice] = useState("");
   const [diffsBySection, setDiffsBySection] = useState<Record<string, string>>({});
   const [versions, setVersions] = useState<VersionEntry[]>([]);
+  const [strength, setStrength] = useState<Strength>("medium");
 
   // Reload document + snapshots. stable reference so RefreshButton can call it.
   const loadDocument = useCallback(async () => {
@@ -44,7 +49,7 @@ export default function StudioPage({ params }: { params: Promise<{ id: string }>
     try {
       await api("/api/humanize", {
         method: "POST",
-        body: JSON.stringify({ section_id: sectionId, humanize_model: document?.humanize_model }),
+        body: JSON.stringify({ section_id: sectionId, strength, humanize_model: document?.humanize_model }),
       });
       setNotice("Section rewritten — new version saved.");
       await loadDocument();
@@ -64,7 +69,7 @@ export default function StudioPage({ params }: { params: Promise<{ id: string }>
         "/api/humanize/batch",
         {
           method: "POST",
-          body: JSON.stringify({ document_id: document.id, humanize_model: document.humanize_model }),
+          body: JSON.stringify({ document_id: document.id, strength, humanize_model: document.humanize_model }),
         },
       );
       setNotice(
@@ -269,14 +274,30 @@ export default function StudioPage({ params }: { params: Promise<{ id: string }>
           </div>
           {(document.human_score_avg ?? 0) >= 95 ? (
             <p className="confetti-line" role="status">
-              <span className="confetti" aria-hidden>
-                {Array.from({ length: 9 }).map((_, i) => (
-                  <i key={i} />
-                ))}
-              </span>
+              <Confetti />
               Reads fully human.
             </p>
           ) : null}
+          <div className="mt-4">
+            <p id="strength-label" className="text-xs font-semibold uppercase tracking-wider text-[var(--muted)]">
+              Rewrite strength
+            </p>
+            <div className="mt-1.5 grid grid-cols-3 gap-1 rounded-xl border border-[var(--border)] p-1" role="group" aria-labelledby="strength-label">
+              {STRENGTHS.map((level) => (
+                <button
+                  key={level}
+                  type="button"
+                  aria-pressed={strength === level}
+                  onClick={() => setStrength(level)}
+                  className={`rounded-lg px-2 py-2 text-xs font-bold capitalize transition-colors ${
+                    strength === level ? "bg-[var(--accent)] text-white" : "text-[var(--muted)]"
+                  }`}
+                >
+                  {level}
+                </button>
+              ))}
+            </div>
+          </div>
           <dl className="mt-4 space-y-2 text-sm">
             <div className="flex justify-between">
               <dt className="text-[var(--muted)]">Writing model</dt>
