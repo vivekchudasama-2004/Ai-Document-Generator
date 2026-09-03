@@ -6,7 +6,11 @@ import { SectionSkeleton, Toast } from "@/components/ui/ui";
 
 export default function SettingsPage() {
   const [health, setHealth] = useState<Record<string, unknown> | null>(null);
-  const [models, setModels] = useState<{ defaults: Record<string, string>; models: { id: string; label: string; role: string; cost: string; available: boolean }[] } | null>(null);
+  const [models, setModels] = useState<{
+    defaults: Record<string, string>;
+    models: { id: string; label: string; role: string; cost: string; available: boolean }[];
+    detector: { mode: string; analyzer: string; demo_mode: boolean; sapling: boolean };
+  } | null>(null);
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -24,6 +28,11 @@ export default function SettingsPage() {
   return (
     <div className="max-w-2xl">
       <h1 className="font-display text-3xl font-bold">Settings</h1>
+      {models.detector.demo_mode ? (
+        <div className="mt-4">
+          <Toast kind="error" message="Demo mode is on: scores are estimates, not real detector verdicts." />
+        </div>
+      ) : null}
       <section className="paper-card mt-6 p-5">
         <h2 className="font-display text-lg font-bold">Environment</h2>
         <dl className="mt-3 space-y-2 text-sm">

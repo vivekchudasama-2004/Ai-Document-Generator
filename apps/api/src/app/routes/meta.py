@@ -16,5 +16,7 @@ def meta_models(current_user=Depends(get_current_user)):
             "humanize": settings.DEFAULT_HUMANIZE_MODEL,
         },
         "models": list_models(),
-        "detector": {"mode": settings.DETECTOR_MODE, "analyzer": "en_core_web_sm+textstat"},
+        "detector": {"mode": settings.DETECTOR_MODE, "analyzer": "en_core_web_sm+textstat",
+                     "demo_mode": settings.DEMO_MODE,
+                     "sapling": bool(settings.SAPLING_API_KEY)},
     }

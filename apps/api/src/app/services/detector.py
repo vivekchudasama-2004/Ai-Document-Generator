@@ -81,6 +81,32 @@ def _flesch(text: str) -> float | None:
         return None
 
 
+def _sapling_score(text: str) -> float | None:
+    """Sapling free-tier AI detector (ai_prob 0..1). Only runs when
+    SAPLING_API_KEY is set; None means heuristic-only (honest)."""
+    api_key = get_settings().SAPLING_API_KEY
+    if not api_key:
+        return None
+    try:
+        import json
+        import urllib.request
+
+        request = urllib.request.Request(
+            "https://api.sapling.ai/api/v1/aidetect",
+            data=json.dumps({"key": api_key, "text": text[:2000]}).encode(),
+            headers={"Content-Type": "application/json"},
+        )
+        with urllib.request.urlopen(request, timeout=8) as response:
+            return float(json.load(response).get("score", 0))
+    except Exception:
+        return None
+
+
+def blend_with_sapling(human_percent: float, sapling_ai_prob: float) -> float:
+    """Even blend of heuristic and Sapling verdicts."""
+    return round((human_percent + 100 * (1 - sapling_ai_prob)) / 2, 1)
+
+
 def score_text(text: str) -> dict:
     """Human-likeness score with reasons. Higher burstiness/contractions/
     Flesch and lower passive/cliche load push the score up."""
@@ -122,6 +148,13 @@ def score_text(text: str) -> dict:
         reasons.append("varied rhythm, active voice, natural diction")
 
     label = "human" if human >= 90 else ("mixed" if human >= 70 else "ai")
+    source = "spacy+textstat" if _nlp() else "pure-python"
+    sapling_ai_prob = _sapling_score(text)
+    if sapling_ai_prob is not None:
+        human = blend_with_sapling(human, sapling_ai_prob)
+        reasons.append(f"sapling detector reads {sapling_ai_prob:.0%} AI")
+        source = "heuristic+sapling"
+        label = "human" if human >= 90 else ("mixed" if human >= 70 else "ai")
     result = {
         "ai_prob": round(1 - human / 100, 3),
         "human_percent": human,
@@ -134,6 +167,8 @@ def score_text(text: str) -> dict:
             "contractions_per_100": round(contractions, 2),
             "ttr": round(ttr, 3),
             "flesch": round(flesch, 1) if flesch is not None else None,
+            "source": source,
+            "sapling_ai_prob": sapling_ai_prob,
         },
         "reasons": reasons[:3],
     }

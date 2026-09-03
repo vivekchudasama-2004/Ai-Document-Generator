@@ -81,3 +81,14 @@ def budget_for(model_id: str) -> int:
         if m["id"] == model_id:
             return m["max_tokens"]
     return 2000
+
+
+# Small models follow instructions better with tighter style rails.
+HUMANIZE_SUFFIX: dict[str, str] = {
+    "meta/llama-3.1-8b-instruct": " Keep every sentence under 20 words.",
+    "nvidia/llama-3.1-nemotron-nano-8b-v1": " Keep every sentence under 20 words.",
+}
+
+
+def humanize_suffix(model_id: str) -> str:
+    return HUMANIZE_SUFFIX.get(model_id, "")

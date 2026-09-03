@@ -14,6 +14,7 @@ from app.schemas.generate import GenerateIn, GenerateOut, RegenerateSectionIn, S
 from app.services import generator
 from app.services.detector import score_text
 from app.services.llm.models import ModelNotAllowed, resolve_model
+from app.services.llm.nim_client import count_tokens
 
 router = APIRouter(tags=["generate"])
 
@@ -36,6 +37,11 @@ def _persist(db: Session, *, user_id: str, body: GenerateIn, sections: list[dict
         scored.append({**s, "ai_score": score["ai_prob"], "human_score": score["human_percent"]})
     rows = document_repo.add_sections(db, doc.id, scored)
     document_repo.snapshot(db, document_id=doc.id, sections=rows)  # v1
+    # Per-doc usage for the admin dashboard (model actually used, not requested).
+    doc.tokens_used_json = json.dumps({
+        "model": model_used,
+        "completion_tokens": sum(count_tokens(s.get("content_md", "")) for s in sections),
+    })
     doc.status = "ready"
     db.commit()
     return doc, rows
@@ -72,8 +78,15 @@ async def generate_stream(body: GenerateIn, user=Depends(get_current_user),
         fail(422, CODES.MODEL_NOT_ALLOWED, model=exc.model)
     doc, rows = _persist(db, user_id=str(user.id), body=body, sections=sections, model_used=model_used)
 
+    requested_model = resolve_model("generate", body.generation_model)
+
     async def events():
         yield ":heartbeat\n\n"
+        if model_used != requested_model:
+            yield (
+                "event: model.fallback\n"
+                f"data: {json.dumps({'from_model': requested_model, 'to_model': model_used})}\n\n"
+            )
         for r in rows:
             yield f"event: section.start\ndata: {json.dumps({'documentId': str(doc.id), 'sectionTitle': r.title})}\n\n"
             for sentence in (r.content_md or "").split(". "):

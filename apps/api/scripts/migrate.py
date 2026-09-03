@@ -8,6 +8,7 @@ from app.core.config import get_settings
 from app.db.client import Base, connect_args_for, normalize_url
 
 import app.entities.user  # noqa: F401
+import app.entities.admin_audit  # noqa: F401
 import app.entities.project  # noqa: F401
 import app.entities.document  # noqa: F401
 import app.entities.section  # noqa: F401

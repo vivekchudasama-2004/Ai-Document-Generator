@@ -1,5 +1,6 @@
 # DocuForge Humanized — Detailed Architecture & Project Plan
-**Version:** 1.5.1 | **Date:** 2026-09-03 | **Stack:** Open-Source + NVIDIA NIM on Vercel + TiDB Cloud | **Format:** Professional, 150 words/page, 100% Human Score Target
+**Version:** 1.6.0 | **Date:** 2026-09-03 | **Stack:** Open-Source + NVIDIA NIM on Vercel + TiDB Cloud | **Format:** Professional, 150 words/page, 100% Human Score Target
+**Changelog v1.6.0:** Real Cloudinary signed uploads; Sapling blend fallback; per-doc usage ledger + admin tokens/audits; cover + exact-TOC export; SSE model.fallback events; per-model prompt rails; tests sealed off-network.
 **Changelog v1.5.1:** ErrorBoundary isolation — per-section studio cards, console, dashboard panels, wizard, admin list, page-level fallback; one crash never kills a page.
 **Changelog v1.5.0:** Central error envelope (`error_codes.py` + `messages.py` + `fail()`), global 413/502 AI handlers, `409` on duplicate signup, frontend `messages.ts` + envelope-aware `ApiError`; shared UI components + refresh controls + readable names.
 **Changelog v1.3.0:** Opaque UUID v4 IDs everywhere (no sequential ints in any API); global auth (all `/api/*` require JWT except `GET /api/health`); `user`/`admin` roles with manual admin seed SQL (Appx D) + `/api/admin/*` + `/admin` dashboard; P0 closes: regenerate-section model param, 405b→70b→8b fallback chain + SSE `model.fallback`/`Retry-After`, per-model token budgets + per-doc usage, detect/status shape, user_id scoping rule.

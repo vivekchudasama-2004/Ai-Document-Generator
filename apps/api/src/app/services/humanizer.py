@@ -4,7 +4,7 @@ import re
 
 from app.services.detector import score_text
 from app.services.llm import nim_client
-from app.services.llm.models import resolve_model
+from app.services.llm.models import humanize_suffix, resolve_model
 
 HUMANIZE_SYSTEM = {
     "light": "Fix the stiffest sentences only. Keep structure. Use contractions.",
@@ -57,6 +57,7 @@ async def humanize_text(
 ) -> dict:
     model = resolve_model("humanize", model_override)
     model_used = model  # nim_client may switch models on retry; track the actual one
+    system_prompt = HUMANIZE_SYSTEM[strength] + humanize_suffix(model)
     old_score = score_text(text)
     best_text, best_score = text, old_score["human_percent"]
     history = [{"iteration": 0, "human_percent": best_score}]
@@ -66,7 +67,7 @@ async def humanize_text(
             model_used, candidate = await nim_client.chat_complete(
                 model,
                 [
-                    {"role": "system", "content": HUMANIZE_SYSTEM[strength]},
+                    {"role": "system", "content": system_prompt},
                     {"role": "user", "content": best_text},
                 ],
                 role="humanize",

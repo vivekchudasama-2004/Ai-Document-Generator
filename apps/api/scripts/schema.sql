@@ -11,6 +11,18 @@ CREATE TABLE users (
 	UNIQUE (email)
 );
 
+CREATE TABLE admin_audits (
+	id VARCHAR(36) NOT NULL, 
+	actor_id VARCHAR(36) NOT NULL, 
+	target_id VARCHAR(36) NOT NULL, 
+	action VARCHAR(32) NOT NULL, 
+	old_role VARCHAR(16) NOT NULL, 
+	new_role VARCHAR(16) NOT NULL, 
+	created_at DATETIME NOT NULL, 
+	PRIMARY KEY (id), 
+	FOREIGN KEY(actor_id) REFERENCES users (id) ON DELETE CASCADE
+);
+
 CREATE TABLE password_reset_tokens (
 	id VARCHAR(36) NOT NULL, 
 	user_id VARCHAR(36) NOT NULL, 

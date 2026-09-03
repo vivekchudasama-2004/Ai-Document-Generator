@@ -5,6 +5,10 @@ from pathlib import Path
 os.environ["NIM_MOCK"] = "true"
 os.environ["TIDB_URL"] = ""
 os.environ["JWT_SECRET"] = "test-secret-for-pytest-only"
+# Seal external integrations: tests must never touch network or real creds.
+os.environ["CLOUDINARY_URL"] = ""
+os.environ["SAPLING_API_KEY"] = ""
+os.environ["RESEND_API_KEY"] = ""
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
@@ -18,6 +22,7 @@ from app.db.client import Base, get_db
 
 # import entity modules so tables register
 import app.entities.user  # noqa: F401
+import app.entities.admin_audit  # noqa: F401
 import app.entities.project  # noqa: F401
 import app.entities.document  # noqa: F401
 import app.entities.section  # noqa: F401
