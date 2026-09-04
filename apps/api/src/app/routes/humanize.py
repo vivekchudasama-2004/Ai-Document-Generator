@@ -12,6 +12,7 @@ from app.repositories import document_repo, section_repo, user_model_repo
 from app.schemas.humanize import HumanizeBatchIn, HumanizeIn, MermaidIn
 from app.services import humanizer
 from app.services.detector import count_words
+from app.services.keys import UserKeyRequired
 from app.services.mermaid import sanitize_svg
 
 router = APIRouter(tags=["humanize"])
@@ -23,12 +24,15 @@ async def humanize(body: HumanizeIn, request: Request, user=Depends(get_current_
     row = section_repo.get_owned(db, user_id=str(user.id), section_id=str(body.section_id))
     if not row:
         fail(404, CODES.SECTION_NOT_FOUND)
-    result = await humanizer.humanize_text(
-        row.content_humanized_md or row.content_md, strength=body.strength,
-        model_override=body.humanize_model, max_iterations=body.max_iterations,
-        extra_allowed=tuple(user_model_repo.enabled_ids(db, str(user.id))),
-        db=db, user_id=str(user.id),
-    )
+    try:
+        result = await humanizer.humanize_text(
+            row.content_humanized_md or row.content_md, strength=body.strength,
+            model_override=body.humanize_model, max_iterations=body.max_iterations,
+            extra_allowed=tuple(user_model_repo.enabled_ids(db, str(user.id))),
+            db=db, user_id=str(user.id), is_admin=user.role == "admin",
+        )
+    except UserKeyRequired:
+        fail(422, CODES.BYOK_KEY_REQUIRED)
     row.content_humanized_md = result["new_content"]
     row.word_count = count_words(result["new_content"])
     row.human_score = result["new_human"]
@@ -53,12 +57,15 @@ async def humanize_batch(
     for row in sections:
         if float(row.human_score or 0) >= 95:
             continue
-        result = await humanizer.humanize_text(
-            row.content_humanized_md or row.content_md, strength=body.strength,
-            model_override=body.humanize_model,
-            extra_allowed=tuple(user_model_repo.enabled_ids(db, str(user.id))),
-            db=db, user_id=str(user.id),
-        )
+        try:
+            result = await humanizer.humanize_text(
+                row.content_humanized_md or row.content_md, strength=body.strength,
+                model_override=body.humanize_model,
+                extra_allowed=tuple(user_model_repo.enabled_ids(db, str(user.id))),
+                db=db, user_id=str(user.id), is_admin=user.role == "admin",
+            )
+        except UserKeyRequired:
+            fail(422, CODES.BYOK_KEY_REQUIRED)
         row.content_humanized_md = result["new_content"]
         row.word_count = count_words(result["new_content"])
         row.human_score = result["new_human"]

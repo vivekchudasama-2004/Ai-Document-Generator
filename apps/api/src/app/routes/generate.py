@@ -10,10 +10,11 @@ from app.core.rate_limit import limiter
 
 from app.core.security import get_current_user
 from app.db.client import get_db
-from app.repositories import document_repo, user_model_repo
+from app.repositories import document_repo, project_repo, user_model_repo
 from app.schemas.generate import GenerateIn, GenerateOut, RegenerateSectionIn, SectionOut
 from app.services import generator
 from app.services.detector import score_text
+from app.services.keys import UserKeyRequired
 from app.services.llm.models import ModelNotAllowed, resolve_model
 from app.services.llm.nim_client import count_tokens
 
@@ -22,7 +23,15 @@ router = APIRouter(tags=["generate"])
 
 def _persist(db: Session, *, user_id: str, body: GenerateIn, sections: list[dict],
              model_used: str) -> tuple:
-    project_id = str(body.project_id) if body.project_id else user_id
+    project_id = str(body.project_id) if body.project_id else ""
+    if not project_id or not project_repo.get_owned(db, user_id=user_id, project_id=project_id):
+        # Wizard sends no project: house the doc in an auto-created one
+        # instead of FK-crashing on the user id.
+        auto = project_repo.create(
+            db, user_id=user_id, title=body.title[:255] or "Untitled",
+            idea=body.idea[:500], slug=None,
+        )
+        project_id = auto.id
     extra_models = tuple(user_model_repo.enabled_ids(db, user_id))
     try:
         hum = resolve_model("humanize", body.humanize_model, extra_allowed=extra_models)
@@ -57,10 +66,12 @@ async def generate(body: GenerateIn, request: Request, user=Depends(get_current_
             title=body.title, idea=body.idea, doc_type=body.doc_type,
             tone=body.tone, depth=body.depth, model_override=body.generation_model,
             extra_allowed=tuple(user_model_repo.enabled_ids(db, str(user.id))),
-            db=db, user_id=str(user.id),
+            db=db, user_id=str(user.id), is_admin=user.role == "admin",
         )
     except ModelNotAllowed as exc:
         fail(422, CODES.MODEL_NOT_ALLOWED, model=exc.model)
+    except UserKeyRequired:
+        fail(422, CODES.BYOK_KEY_REQUIRED)
     doc, rows = _persist(db, user_id=str(user.id), body=body, sections=sections, model_used=model_used)
     return GenerateOut(
         document_id=doc.id,
@@ -80,10 +91,12 @@ async def generate_stream(body: GenerateIn, request: Request, user=Depends(get_c
             title=body.title, idea=body.idea, doc_type=body.doc_type,
             tone=body.tone, depth=body.depth, model_override=body.generation_model,
             extra_allowed=tuple(user_model_repo.enabled_ids(db, str(user.id))),
-            db=db, user_id=str(user.id),
+            db=db, user_id=str(user.id), is_admin=user.role == "admin",
         )
     except ModelNotAllowed as exc:
         fail(422, CODES.MODEL_NOT_ALLOWED, model=exc.model)
+    except UserKeyRequired:
+        fail(422, CODES.BYOK_KEY_REQUIRED)
     doc, rows = _persist(db, user_id=str(user.id), body=body, sections=sections, model_used=model_used)
 
     requested_model = resolve_model("generate", body.generation_model)
@@ -116,13 +129,18 @@ async def regenerate_section(
     doc = document_repo.get_owned(db, user_id=str(user.id), document_id=str(body.document_id))
     if not doc:
         fail(404, CODES.DOC_NOT_FOUND)
-    model_used, sections = await generator.generate_sections(
+    try:
+        model_used, sections = await generator.generate_sections(
         title=body.section_title, idea=body.instruction or doc.title,
         doc_type=doc.type, tone=doc.tone, depth=doc.depth,
         model_override=body.generation_model,
         extra_allowed=tuple(user_model_repo.enabled_ids(db, str(user.id))),
-        db=db, user_id=str(user.id),
+        db=db, user_id=str(user.id), is_admin=user.role == "admin",
     )
+    except ModelNotAllowed as exc:
+        fail(422, CODES.MODEL_NOT_ALLOWED, model=exc.model)
+    except UserKeyRequired:
+        fail(422, CODES.BYOK_KEY_REQUIRED)
     if not sections:
         fail(502, CODES.MODEL_EMPTY_RESPONSE)
     fresh = sections[0]

@@ -131,7 +131,10 @@ def auto_select_model(
                 ["short section: cheapest capable humanizer"])
     score = 0
     reasons: list[str] = []
-    if depth == "detailed":
+    if depth == "comprehensive":
+        score += 3
+        reasons.append("comprehensive depth")
+    elif depth == "detailed":
         score += 2
         reasons.append("detailed depth")
     if doc_type in COMPLEX_TYPES:

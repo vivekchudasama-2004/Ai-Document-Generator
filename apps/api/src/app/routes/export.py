@@ -1,5 +1,6 @@
-"""Export MVP: print-CSS HTML (client prints to PDF) + DOCX. Records every
-export row; Cloudinary upload when configured, else local data/exports file."""
+"""Export: print-CSS HTML (client prints to PDF) + DOCX + LaTeX source.
+Records every export row; Cloudinary upload when configured, else local
+data/exports file."""
 from pathlib import Path
 from uuid import UUID
 
@@ -22,6 +23,39 @@ router = APIRouter(tags=["export"])
 EXPORT_DIR = Path("data/exports")
 
 
+@router.post("/export/tex")
+@limiter.limit("20/minute")
+def export_tex(body: dict, request: Request, user=Depends(get_current_user), db: Session = Depends(get_db)):
+    """Real LaTeX source: compile locally with `pdflatex doc.tex` (twice for
+    the TOC). Server-side pdflatex can't run on Vercel serverless, so the
+    source itself is the artifact."""
+    doc = document_repo.get_owned(db, user_id=str(user.id), document_id=str(body.get("documentId", "")))
+    if not doc:
+        fail(404, CODES.DOC_NOT_FOUND)
+    sections = document_repo.get_sections(db, doc.id)
+    tex = exporter.build_tex(title=doc.title, doc_type=doc.type, sections=[
+        {"title": s.title, "content_md": s.content_md, "content_humanized_md": s.content_humanized_md}
+        for s in sections
+    ])
+    data = tex.encode("utf-8")
+    uploaded = upload_bytes(data, public_id=f"docuforge/{doc.id}",
+                            resource_type="raw")
+    row = Export(document_id=doc.id, user_id=str(user.id), format="tex",
+                 pages=None, words_total=sum(s.word_count for s in sections))
+    if uploaded:
+        row.secure_url = uploaded.get("secure_url")
+        row.cloudinary_public_id = uploaded.get("public_id")
+    else:
+        EXPORT_DIR.mkdir(parents=True, exist_ok=True)
+        path = EXPORT_DIR / f"{doc.id}.tex"
+        path.write_bytes(data)
+        row.path = str(path)
+    db.add(row)
+    db.commit()
+    return {"exportId": row.id, "secure_url": row.secure_url, "public_id": row.cloudinary_public_id,
+            "pages": row.pages, "words_total": row.words_total}
+
+
 @router.post("/export/pdf")
 @limiter.limit("20/minute")
 def export_pdf(body: dict, request: Request, user=Depends(get_current_user), db: Session = Depends(get_db)):
@@ -30,7 +64,8 @@ def export_pdf(body: dict, request: Request, user=Depends(get_current_user), db:
         fail(404, CODES.DOC_NOT_FOUND)
     sections = document_repo.get_sections(db, doc.id)
     html = exporter.build_print_html(title=doc.title, doc_type=doc.type, sections=[
-        {"title": s.title, "content_md": s.content_md, "content_humanized_md": s.content_humanized_md}
+        {"title": s.title, "content_md": s.content_md, "content_humanized_md": s.content_humanized_md,
+         "mermaid_svg": s.mermaid_svg}
         for s in sections
     ])
     pages = exporter.paginate([
@@ -130,7 +165,9 @@ def download_export(export_id: UUID, user=Depends(get_current_user), db: Session
     if row.secure_url:
         return RedirectResponse(row.secure_url, status_code=302)
     if row.path and Path(row.path).exists():
-        media = "application/vnd.openxmlformats-officedocument.wordprocessingml.document" \
-            if row.format == "docx" else "text/html"
+        media = {
+            "docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            "tex": "application/x-tex",
+        }.get(row.format, "text/html")
         return FileResponse(row.path, media_type=media, filename=f"{row.document_id}.{row.format}")
     fail(404, CODES.EXPORT_FILE_GONE)

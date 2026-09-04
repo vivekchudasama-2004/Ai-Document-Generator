@@ -72,13 +72,14 @@ def word_diff(old: str, new: str) -> dict:
 async def humanize_text(
     text: str, *, strength: str = "medium", model_override: str | None = None,
     max_iterations: int = 3, extra_allowed: tuple = (),
-    db=None, user_id: str | None = None,
+    db=None, user_id: str | None = None, is_admin: bool = False,
 ) -> dict:
     model = resolve_model("humanize", model_override, extra_allowed=extra_allowed, text=text)
     model_used = model  # nim_client may switch models on retry; track the actual one
     transport = None
     if db is not None and user_id:
-        transport = _keys.transport_for(db, user_id=user_id, model_id=model)
+        transport = _keys.require_transport(
+            db, user_id=user_id, model_id=model, is_admin=is_admin)
     system_prompt = HUMANIZE_SYSTEM[strength] + humanize_suffix(model)
     old_score = score_text(text)
     best_text, best_score = text, old_score["human_percent"]
@@ -95,6 +96,8 @@ async def humanize_text(
                 role="humanize",
                 transport=transport,
             )
+        except (nim_client.ModelNotEntitled, _keys.UserKeyRequired):
+            raise  # key problems must surface, never hide behind the mock rewrite
         except Exception:
             candidate = _mock_rewrite(best_text)
         new_score = score_text(candidate)["human_percent"]

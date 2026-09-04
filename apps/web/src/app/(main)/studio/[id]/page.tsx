@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { api, ApiError } from "@/lib/api/client";
 import { ScoreRing, SectionSkeleton, Toast } from "@/components/ui/ui";
 import RefreshButton from "@/components/ui/RefreshButton";
@@ -22,8 +22,8 @@ const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
 type VersionEntry = { version_no: number; created_at: string };
 
-export default function StudioPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id: documentId } = use(params);
+export default function StudioPage({ params }: { params: { id: string } }) {
+  const { id: documentId } = params;
   const [document, setDocument] = useState<DocumentDetail | null>(null);
   const [error, setError] = useState("");
   const [busySectionId, setBusySectionId] = useState<string | null>(null);
@@ -218,7 +218,7 @@ export default function StudioPage({ params }: { params: Promise<{ id: string }>
     }
   }
 
-  async function exportDocument(format: "pdf" | "docx") {
+  async function exportDocument(format: "pdf" | "docx" | "tex") {
     setBusySectionId(`export-${format}`);
     try {
       const result = await api<{ exportId: string }>(`/api/export/${format}`, {
@@ -252,16 +252,14 @@ export default function StudioPage({ params }: { params: Promise<{ id: string }>
     <div>
       <header>
         <p className="kicker">{document.type} · {document.status}</p>
-        <div className="mt-2 flex flex-wrap items-end justify-between gap-4">
-          <h1 className="font-display min-w-0 max-w-[20ch] text-balance text-3xl font-bold sm:text-4xl">
-            {document.title}
-          </h1>
-          <div className="flex shrink-0 items-center gap-3">
-            <ScoreRing value={document.human_score_avg} size={52} />
-            <div className="font-mono text-xs leading-relaxed text-[var(--muted)]">
-              <p>{document.sections.length} sections</p>
-              <p>{weakCount} below 95%</p>
-            </div>
+        <h1 className="font-display mt-2 max-w-[20ch] text-balance text-3xl font-bold sm:text-4xl">
+          {document.title}
+        </h1>
+        <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2">
+          <ScoreRing value={document.human_score_avg} size={52} />
+          <div className="font-mono text-xs leading-relaxed text-[var(--muted)]">
+            <p>{document.sections.length} sections</p>
+            <p>{weakCount} below 95%</p>
           </div>
         </div>
         <div className="mt-4 flex flex-wrap items-center gap-2 border-y border-[var(--border)] py-3">
@@ -273,6 +271,14 @@ export default function StudioPage({ params }: { params: Promise<{ id: string }>
             onClick={() => exportDocument("docx")}
           >
             DOCX
+          </button>
+          <button
+            className="btn-ghost px-4 py-2 text-sm font-semibold"
+            disabled={busySectionId !== null}
+            onClick={() => exportDocument("tex")}
+            title="LaTeX source — compile with pdflatex"
+          >
+            LaTeX
           </button>
           <button
             className="btn-accent px-5 py-2 text-sm font-semibold"
@@ -289,21 +295,23 @@ export default function StudioPage({ params }: { params: Promise<{ id: string }>
         </div>
       ) : null}
 
-      <div className="mt-6 grid gap-8 lg:grid-cols-[230px_minmax(0,1fr)_250px]">
-        <nav aria-label="Outline" className="h-fit min-w-0 lg:sticky lg:top-6">
+      <div className="mt-6 grid gap-6 md:gap-8 xl:grid-cols-[200px_minmax(0,1fr)_260px]">
+        <nav aria-label="Outline" className="h-fit min-w-0 xl:sticky xl:top-6">
           <p className="kicker mb-2">Outline</p>
-          <div className="flex gap-2 overflow-x-auto pb-1 lg:grid lg:grid-cols-1 lg:overflow-visible lg:rounded-2xl lg:border lg:border-[var(--border)] lg:bg-[var(--surface)] lg:p-2">
+          <div className="flex gap-2 overflow-x-auto pb-1 xl:grid xl:grid-cols-1 xl:overflow-visible xl:rounded-2xl xl:border xl:border-[var(--border)] xl:bg-[var(--surface)] xl:p-2">
           {document.sections.map((section, i) => (
             <a
               key={section.id}
               href={`#sec-${section.id}`}
-              className="rowlink flex shrink-0 items-center gap-2.5 rounded-full border border-[var(--border)] px-3 py-2 text-sm lg:rounded-xl lg:border-0"
+              className="rowlink flex min-w-0 shrink-0 items-center gap-2.5 rounded-full border border-[var(--border)] px-3 py-2 text-sm xl:rounded-xl xl:border-0"
             >
-              <span className="font-mono text-xs text-[var(--muted)]" aria-hidden>
+              <span className="shrink-0 font-mono text-xs text-[var(--muted)]" aria-hidden>
                 {String(i + 1).padStart(2, "0")}
               </span>
-              <span className="max-w-32 truncate font-medium sm:max-w-none">{section.title}</span>
-              <ScoreRing value={section.human_score} size={30} />
+              <span className="min-w-0 flex-1 truncate font-medium">{section.title}</span>
+              <span className="shrink-0">
+                <ScoreRing value={section.human_score} size={30} />
+              </span>
             </a>
           ))}
           </div>
@@ -364,13 +372,15 @@ export default function StudioPage({ params }: { params: Promise<{ id: string }>
           ))}
         </div>
 
-        <aside className="paper-card h-fit min-w-0 p-5 lg:sticky lg:top-6" aria-label="Humanize console">
+        <aside className="paper-card h-fit min-w-0 overflow-hidden p-5 xl:sticky xl:top-6" aria-label="Humanize console">
           <ErrorBoundary label="humanize console">
           <p className="kicker">Console</p>
           <h2 className="font-display mt-1.5 text-lg font-bold">Humanize console</h2>
           <div className="mt-3 flex items-center gap-3">
-            <ScoreRing value={document.human_score_avg} size={56} />
-            <p className="text-sm text-[var(--muted)]">
+            <span className="shrink-0">
+              <ScoreRing value={document.human_score_avg} size={56} />
+            </span>
+            <p className="min-w-0 text-sm text-[var(--muted)]">
               Average across {document.sections.length} sections. Target 95%+.
             </p>
           </div>
@@ -392,7 +402,7 @@ export default function StudioPage({ params }: { params: Promise<{ id: string }>
                   aria-pressed={strength === level.id}
                   title={level.hint}
                   onClick={() => setStrength(level.id)}
-                  className={`rounded-xl px-2 py-2 text-xs font-bold capitalize transition-colors ${
+                  className={`min-w-0 truncate rounded-xl px-1 py-2 text-[11px] font-bold capitalize transition-colors sm:text-xs ${
                     strength === level.id ? "bg-[var(--accent)] text-white" : "text-[var(--muted)]"
                   }`}
                 >

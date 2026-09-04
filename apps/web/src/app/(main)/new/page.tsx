@@ -139,8 +139,9 @@ function Wizard() {
           <label className="block min-w-0">
             <span className="text-sm font-semibold">Depth</span>
             <select className="field mt-1.5" value={depth} onChange={(e) => setDepth(e.target.value)}>
-              <option value="detailed">Detailed</option>
-              <option value="brief">Brief</option>
+              <option value="detailed">Detailed · ~10 pages</option>
+              <option value="brief">Brief · ~5 pages</option>
+              <option value="comprehensive">Comprehensive · ~20 pages</option>
             </select>
           </label>
         </div>
@@ -180,6 +181,14 @@ function Wizard() {
             them (account not subscribed, or the ids retired). Accept the model terms
             on your NVIDIA account, or open Manage models below and add your own
             OpenRouter or Groq key instead.
+          </p>
+        </div>
+      ) : null}
+      {failedCode === "BYOK_KEY_REQUIRED" ? (
+        <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 sm:p-5" role="note">
+          <p className="text-sm leading-relaxed text-[var(--muted)]">
+            The shared writing key is admin-only. Save your own API key in Manage
+            models (NVIDIA, OpenRouter, Groq, or custom) and generate again.
           </p>
         </div>
       ) : null}

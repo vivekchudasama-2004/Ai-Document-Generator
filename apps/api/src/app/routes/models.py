@@ -61,9 +61,11 @@ def models_set_enabled(body: dict, current_user=Depends(get_current_user),
     if not model_id or len(model_id) > 128:
         fail(422, CODES.MODEL_NOT_ALLOWED, model=model_id or "empty")
     provider, _rest = byok.split_model(model_id)
-    if provider in (*byok.PROVIDER_URLS, "custom"):
-        # Provider ids are admissible only with the user's own key — even when
-        # the live list is unknown (mock/offline), so a saved model never dangles.
+    if provider in ("groq", "openrouter", "custom"):
+        # These ids only ever work with the user's own key — even when the
+        # live list is unknown (mock/offline) — so a saved model never dangles.
+        # (`nvidia/…` ids stay enable-able: admins may use the server key, and
+        # members are gated at generation time instead.)
         if not byok.key_available(db, user_id=str(current_user.id), model_id=model_id):
             fail(422, CODES.MODEL_NOT_ALLOWED, model=model_id)
         row = user_model_repo.set_enabled(

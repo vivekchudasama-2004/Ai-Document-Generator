@@ -27,10 +27,56 @@ nothing good ever gets lost.
 
 **Models & retrieval**
 - NVIDIA NIM catalog with per-document model override (writing vs humanizing separately)
-- Bring your own key: OpenRouter, Groq, or a custom OpenAI-compatible endpoint (encrypted, masked, key-gated)
+- Bring your own key: NVIDIA NIM, OpenRouter, Groq, or a custom OpenAI-compatible endpoint (encrypted, masked, key-gated)
 - "Auto" picks the cheapest capable model; reachable models sort first, unavailable ones are marked
 - Similar-section search over your own documents (Voyage embeddings, no local ML),
   switchable between `voyage-3-lite` and `voyage-3-large` per request
+
+## API keys & roles (read this before generating)
+
+DocuForge has two roles and a strict key-ownership model:
+
+- **Admin** — full access: the `/admin` dashboard (users, token totals, audit log,
+  system status) **and** the shared server NVIDIA key (`NVIDIA_NIM_API_KEY`).
+  The admin account is seeded manually (see `ARCHITECTURE.md` Appendix D —
+  there is no signup backdoor).
+- **Member** — everything except `/admin`, but **must save their own API key**
+  before generating or humanizing. The shared server key is admin-only.
+  Without a saved key, generate/humanize answer `422 BYOK_KEY_REQUIRED`
+  with instructions instead of failing opaquely.
+
+**Saving your key** (as a member): open **Manage models** from any model picker →
+*Your provider keys* → pick the provider → paste the key → **Save key**.
+Providers:
+
+| Provider | What to save | Models look like |
+|----------|--------------|------------------|
+| NVIDIA NIM | your `nvapi-…` key from build.nvidia.com | curated catalog (Mistral Large 2, Nemotron 70B, Mistral 7B) |
+| OpenRouter | your OpenRouter key | `openrouter/<model-id>` (add the id under *Your provider models*) |
+| Groq | your Groq key | `groq/<model-id>` (add the id under *Your provider models*) |
+| Custom endpoint | key + `https://` base URL of any OpenAI-compatible API | `custom/<label>/<model-id>` |
+
+Keys are Fernet-encrypted in `user_llm_keys` (ciphertext only — plaintext never
+touches the DB, logs, or responses; reads are masked like `tes••••5678`).
+Custom endpoints must be public `https` hosts (no IPs, localhost, or `.local`).
+Deleting a key instantly disables its models; enabling a provider id without
+its key is rejected.
+
+**Model endpoints** (`/api/models/*`, all JWT-authenticated):
+
+| Method | Endpoint | Purpose |
+|--------|----------|---------|
+| `GET` | `/api/models/available` | live NVIDIA list for the server key (cached 10 min) |
+| `GET` / `POST` | `/api/models/enabled` | your personal picker set; provider ids need their key |
+| `GET` / `POST` / `DELETE` | `/api/models/keys` | save (201), list masked, delete saved keys |
+| `GET` | `/api/models/auto-preview` | which model Auto would pick, with reasons |
+
+**Why "No model answered" (502 `MODEL_NO_ACCESS`)**: every candidate refused
+with 404/410 — your key can list models but can't invoke them (provider
+account not subscribed to those models, or the ids retired, as happened when
+NVIDIA retired Llama 3.1). Accept the model terms on your provider account or
+switch providers via Manage models. True overloads still return 502
+`MODEL_UNAVAILABLE` with a one-click retry on a smaller writer.
 
 **Workspace**
 - Dashboard with real totals, projects, template gallery, download shelf

@@ -31,7 +31,7 @@ def test_add_list_masked_delete_key(client, auth_headers):
 
 def test_add_key_validation(client, auth_headers):
     bad_provider = client.post("/api/models/keys", headers=auth_headers, json={
-        "provider": "nvidia", "api_key": SECRET,
+        "provider": "anthropic", "api_key": SECRET,
     })
     assert bad_provider.status_code == 422
     assert bad_provider.json()["detail"]["code"] == "BYOK_INVALID"
@@ -131,3 +131,68 @@ def test_ciphertext_at_rest(client, auth_headers):
     assert SECRET not in row.encrypted_key
     assert row.encrypted_key != SECRET
     db.close()
+
+
+def _make_admin(client, auth_headers):
+    from app.core.security import hash_password
+    from app.repositories import user_repo
+    from conftest import TestingSession
+
+    db = TestingSession()
+    admin = user_repo.create(db, email="keyowner-admin@example.com",
+                             password_hash=hash_password("adminpass123"),
+                             display_name="Key Admin")
+    user_repo.set_role(db, admin, "admin")
+    db.close()
+    login = client.post("/api/auth/login",
+                        json={"email": "keyowner-admin@example.com", "password": "adminpass123"})
+    return {"Authorization": f"Bearer {login.json()['access_token']}"}
+
+
+def test_member_needs_own_key_for_nim(client, auth_headers, monkeypatch):
+    """Server NVIDIA key is admin-only: members get 422, admins pass through."""
+    from app.services.llm import nim_client
+
+    class _LiveSettings:
+        NIM_MOCK = False
+        NVIDIA_NIM_API_KEY = "server-key"
+        LLM_KEYS_SECRET = ""
+        JWT_SECRET = "test-secret-for-pytest-only"
+
+    monkeypatch.setattr(nim_client, "get_settings", lambda: _LiveSettings())
+    import app.services.keys as _keys
+    monkeypatch.setattr(_keys, "get_settings", lambda: _LiveSettings())
+
+    denied = client.post("/api/generate", headers=auth_headers,
+                         json={"title": "No Key", "idea": "Member without own key",
+                               "doc_type": "rdd", "depth": "brief"})
+    assert denied.status_code == 422, denied.text
+    assert denied.json()["detail"]["code"] == "BYOK_KEY_REQUIRED"
+
+    # Member saves their own NVIDIA key → routed with it (stubbed transport).
+    client.post("/api/models/keys", headers=auth_headers, json={
+        "provider": "nvidia", "api_key": SECRET,
+    })
+
+    seen = {}
+
+    async def fake_post(model, messages, max_tokens, transport=None):
+        seen.update(transport or {})
+        return "## Shipped\nRouted through the member key."
+
+    monkeypatch.setattr(nim_client, "_post", fake_post)
+    ok = client.post("/api/generate", headers=auth_headers,
+                     json={"title": "Own Key", "idea": "Member with own nvidia key",
+                           "doc_type": "rdd", "depth": "brief"})
+    assert ok.status_code == 200, ok.text
+    assert seen["base_url"] == "https://integrate.api.nvidia.com/v1"
+    assert seen["api_key"] == SECRET
+    assert SECRET not in ok.text
+
+    # Admin with no saved key still uses the server key path (mock would apply,
+    # but here _post is stubbed → proves no key gate for admins).
+    admin_headers = _make_admin(client, auth_headers)
+    admin_ok = client.post("/api/generate", headers=admin_headers,
+                           json={"title": "Admin Key", "idea": "Admin on server key",
+                                 "doc_type": "rdd", "depth": "brief"})
+    assert admin_ok.status_code == 200, admin_ok.text

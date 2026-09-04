@@ -210,8 +210,10 @@ export default function ModelManager() {
       <section className="mt-6 border-t border-[var(--border)] pt-5" aria-labelledby="byok-h">
         <h3 id="byok-h" className="text-sm font-bold">Your provider keys</h3>
         <p className="mt-1 text-xs leading-relaxed text-[var(--muted)]">
-          OpenRouter, Groq, or any OpenAI-compatible endpoint. Keys are encrypted
-          on the server and shown masked here — plaintext is never stored or returned.
+          NVIDIA NIM, OpenRouter, Groq, or any OpenAI-compatible endpoint. Keys are
+          encrypted on the server and shown masked here — plaintext is never stored
+          or returned. Workspace members must save their own key; only admins may
+          use the shared server key.
         </p>
         {savedKeys.length ? (
           <ul className="mt-3 space-y-2">
@@ -248,6 +250,7 @@ export default function ModelManager() {
               value={provider}
               onChange={(event) => setProvider(event.target.value)}
             >
+              <option value="nvidia">NVIDIA NIM</option>
               <option value="openrouter">OpenRouter</option>
               <option value="groq">Groq</option>
               <option value="custom">Custom endpoint</option>

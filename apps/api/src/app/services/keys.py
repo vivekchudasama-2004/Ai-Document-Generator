@@ -21,6 +21,7 @@ from app.core.config import get_settings
 from app.repositories import llm_key_repo
 
 PROVIDER_URLS = {
+    "nvidia": "https://integrate.api.nvidia.com/v1",
     "openrouter": "https://openrouter.ai/api/v1",
     "groq": "https://api.groq.com/openai/v1",
 }
@@ -32,6 +33,10 @@ LOCAL_NAMES = {"localhost"}
 
 class KeyError(Exception):
     pass
+
+
+class UserKeyRequired(Exception):
+    """Non-admin tried a server-key (NIM) model without saving their own key."""
 
 
 def _fernet() -> Fernet:
@@ -135,22 +140,25 @@ def delete_key(db, *, user_id: str, key_id: str) -> bool:
 
 
 def transport_for(db, *, user_id: str, model_id: str) -> dict | None:
-    """{base_url, api_key} for provider-prefixed models the user holds a key for.
+    """{base_url, api_key, model} for models the user holds a key for.
 
-    Returns None for NIM models (server key path). Raises KeyError never —
-    unknown/absent keys simply mean "not a BYOK call".
+    Provider-prefixed ids (`groq/…`, `openrouter/…`, `custom/label/…`) use the
+    matching saved key. Bare NIM catalog ids use the user's saved `nvidia` key.
+    Returns None when no key covers the model (server-key path for admins).
+    Raises KeyError never — unknown/absent keys mean "not a BYOK call".
     """
     provider, rest = split_model(model_id)
-    if provider in PROVIDER_URLS:
+    if provider in PROVIDER_URLS and provider != "nvidia":
         row = llm_key_repo.get(db, user_id=user_id, provider=provider, label="")
-        label = ""
     elif provider == "custom":
         label, sep, _name = rest.partition("/")
         if not sep:
             return None
         row = llm_key_repo.get(db, user_id=user_id, provider="custom", label=label)
     else:
-        return None
+        # Bare NIM id (or an `nvidia/…` id): the user's own NVIDIA key.
+        row = llm_key_repo.get(db, user_id=user_id, provider="nvidia", label="")
+        provider = "nvidia"
     if not row:
         return None
     try:
@@ -159,6 +167,17 @@ def transport_for(db, *, user_id: str, model_id: str) -> dict | None:
         return None
     return {"base_url": row.base_url or PROVIDER_URLS[provider],
             "api_key": api_key, "model": provider_model_name(model_id)}
+
+
+def require_transport(db, *, user_id: str, model_id: str, is_admin: bool):
+    """Enforce the key-ownership model. Admins may use the server NVIDIA key;
+    everyone else must have saved their own key for the model. Raises
+    UserKeyRequired (→ 422 BYOK_KEY_REQUIRED) instead of failing opaquely.
+    """
+    transport = transport_for(db, user_id=user_id, model_id=model_id)
+    if transport is None and not is_admin and not get_settings().NIM_MOCK:
+        raise UserKeyRequired(model_id)
+    return transport
 
 
 def provider_model_name(model_id: str) -> str:

@@ -31,6 +31,7 @@ MESSAGES: dict[str, str] = {
     CODE.MODEL_NO_ACCESS: "No model answered — your key can't invoke these models (not subscribed, or the ids retired). Accept the model terms on your provider account, or add your own OpenRouter/Groq key in Manage models.",
     CODE.BYOK_INVALID: "That provider key can't be saved — check the provider, key, and URL, then try again.",
     CODE.BYOK_NOT_FOUND: "We couldn't find that saved key. It may have been deleted.",
+    CODE.BYOK_KEY_REQUIRED: "Add your own API key first — open Manage models and save a key (NVIDIA, OpenRouter, Groq, or custom). The shared key is admin-only.",
     # --- platform ---
     CODE.DB_NOT_CONFIGURED: "The database isn't connected. Set TIDB_URL and restart the API.",
     CODE.RAG_NOT_CONFIGURED: "Similar-search is off. Set EMBEDDING_API_URL, EMBEDDING_API_KEY and EMBEDDING_MODEL first.",

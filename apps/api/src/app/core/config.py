@@ -45,7 +45,7 @@ class Settings(BaseSettings):
     LLM_KEYS_SECRET: str = ""
     LOG_LEVEL: str = "info"
     CORS_ORIGINS: str = "http://localhost:3000"
-    APP_VERSION: str = "1.16.0"
+    APP_VERSION: str = "1.17.0"
 
     @property
     def allowed_models(self) -> list[str]:

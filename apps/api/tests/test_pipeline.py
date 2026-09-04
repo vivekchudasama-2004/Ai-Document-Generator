@@ -40,6 +40,15 @@ def test_generate_pipeline(client, auth_headers):
     assert "-" in body["document_id"]
     doc_id = body["document_id"]
 
+    # project-less wizard call must auto-house the doc (TiDB FK enforced).
+    from conftest import TestingSession
+    from app.entities.document import Document as _Doc
+    from app.entities.project import Project as _Proj
+    db = TestingSession()
+    doc = db.query(_Doc).filter(_Doc.id == doc_id).one()
+    assert db.query(_Proj).filter(_Proj.id == doc.project_id).one().user_id == doc.user_id
+    db.close()
+
     first = body["sections"][0]
     assert first["human_score"] is not None
 

@@ -13,8 +13,8 @@ function SectionBody({ markdown }: { markdown: string }) {
     return "";
   });
   return (
-    <div>
-      <p className="whitespace-pre-wrap leading-relaxed">{prose}</p>
+    <div className="min-w-0">
+      <p className="whitespace-pre-wrap break-words leading-relaxed">{prose}</p>
       {diagrams.map((diagram, index) => (
         <MermaidBlock key={index} code={diagram} />
       ))}
@@ -61,14 +61,14 @@ export default function SectionCard({
   onToggleDiff,
 }: SectionCardProps) {
   return (
-    <article id={`sec-${section.id}`} className="paper-sheet p-6 md:p-8">
-      <div className="flex items-start justify-between gap-3">
-        <h2 className="font-display text-2xl font-bold">{section.title}</h2>
+    <article id={`sec-${section.id}`} className="paper-sheet min-w-0 p-5 sm:p-6 md:p-8">
+      <h2 className="font-display text-xl font-bold sm:text-2xl">{section.title}</h2>
+      <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2">
         <ScoreRing value={section.human_score} />
+        <p className="text-xs text-[var(--muted)]">
+          {section.word_count} words · v{section.iteration}
+        </p>
       </div>
-      <p className="mt-1 text-xs text-[var(--muted)]">
-        {section.word_count} words · v{section.iteration}
-      </p>
       <div className="mt-4 text-[15px]">
         {isEditing ? (
           <textarea
@@ -82,7 +82,7 @@ export default function SectionCard({
           <SectionBody markdown={section.content_md} />
         )}
       </div>
-      <div className="mt-4 flex flex-wrap gap-2">
+      <div className="mt-4 flex flex-wrap items-center gap-2">
         {isEditing ? (
           <>
             <button
@@ -98,18 +98,18 @@ export default function SectionCard({
           </>
         ) : (
           <>
-            <button className="btn-ghost px-4 py-2 text-sm font-semibold" onClick={onStartEdit}>
+            <button className="btn-ghost px-3.5 py-2 text-[13px] font-semibold" onClick={onStartEdit}>
               Edit
             </button>
             <button
-              className="btn-accent px-4 py-2 text-sm font-semibold"
+              className="btn-accent px-3.5 py-2 text-[13px] font-semibold"
               disabled={actionsDisabled}
               onClick={onHumanize}
             >
               {isBusy ? "Rewriting…" : "Humanize"}
             </button>
             <button
-              className="btn-ghost px-4 py-2 text-sm font-semibold"
+              className="btn-ghost px-3.5 py-2 text-[13px] font-semibold"
               disabled={actionsDisabled}
               onClick={onToggleDiff}
             >
@@ -117,7 +117,7 @@ export default function SectionCard({
             </button>
             <span className="ml-auto flex gap-1" role="group" aria-label={`Reorder ${section.title}`}>
               <button
-                className="btn-ghost px-3 py-2 text-sm font-bold"
+                className="flex h-10 w-10 items-center justify-center rounded-full border border-[var(--border)] text-base font-bold transition-colors hover:border-[var(--ink)] disabled:opacity-40"
                 disabled={actionsDisabled || isFirst}
                 onClick={onMoveUp}
                 aria-label={`Move ${section.title} up`}
@@ -126,7 +126,7 @@ export default function SectionCard({
                 ↑
               </button>
               <button
-                className="btn-ghost px-3 py-2 text-sm font-bold"
+                className="flex h-10 w-10 items-center justify-center rounded-full border border-[var(--border)] text-base font-bold transition-colors hover:border-[var(--ink)] disabled:opacity-40"
                 disabled={actionsDisabled || isLast}
                 onClick={onMoveDown}
                 aria-label={`Move ${section.title} down`}

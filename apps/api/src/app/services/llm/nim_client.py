@@ -3,6 +3,7 @@ tiktoken pre-check (413 if over budget), 405b→70b→8b generate fallback,
 NIM_MOCK template path for offline demo."""
 import asyncio
 import logging
+import re
 
 import httpx
 
@@ -107,7 +108,7 @@ Key risks are scope creep and third-party downtime. Mitigations are feature flag
 
 async def chat_complete(
     model: str, messages: list[dict], *, role: str = "generate",
-    transport: dict | None = None,
+    transport: dict | None = None, max_tokens: int | None = None,
 ) -> tuple[str, str]:
     """Returns (model_used, text). Applies token budget + generate fallback chain.
 
@@ -116,21 +117,26 @@ async def chat_complete(
     NIM_MOCK so a saved key always means a real call.
     """
     settings = get_settings()
+    budget = max_tokens or budget_for(model)
     prompt_tokens = sum(count_tokens(m.get("content", "")) for m in messages)
-    if prompt_tokens > budget_for(model) * 4:
+    if prompt_tokens > budget * 4:
         raise BudgetExceeded(
             f"Prompt ~{prompt_tokens} tokens exceeds budget for {model}", model=model
         )
 
     if transport is not None:
         try:
-            text = await _post(model, messages, budget_for(model), transport)
+            text = await _post(model, messages, budget, transport)
         except ModelRefused as exc:
             raise ModelNotEntitled(f"Provider refused {model}: {exc}") from exc
         return model, text
 
     if settings.NIM_MOCK or not settings.NVIDIA_NIM_API_KEY:
-        title = messages[-1].get("content", "Document")[:60] if messages else "Document"
+        last = messages[-1].get("content", "Document") if messages else "Document"
+        # Prefer the real brief title over the assembled prompt (which now
+        # carries system rails + delimiters — never leak those into the demo).
+        brief = re.search(r"Title:\s*(.+)", last)
+        title = (brief.group(1).strip()[:60] if brief else last[:60]) or "Document"
         return model, MOCK_DOC.format(title=title, idea="the stated idea")
 
     if role == "generate":
@@ -149,7 +155,7 @@ async def chat_complete(
     for candidate in chain:
         tried += 1
         try:
-            text = await _post(candidate, messages, budget_for(candidate))
+            text = await _post(candidate, messages, budget)
             if candidate != model:
                 log.warning("model.fallback from=%s to=%s", model, candidate)
             return candidate, text

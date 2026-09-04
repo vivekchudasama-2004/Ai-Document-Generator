@@ -8,7 +8,7 @@ DocType = Literal[
     "development_plan", "runbook", "sop", "incident_report", "postmortem", "pm_roadmap",
 ]
 Tone = Literal["formal", "startup", "enterprise"]
-Depth = Literal["brief", "detailed"]
+Depth = Literal["brief", "detailed", "comprehensive"]
 
 MVP_TYPES: set[str] = {"rdd", "prd", "technical_design"}
 

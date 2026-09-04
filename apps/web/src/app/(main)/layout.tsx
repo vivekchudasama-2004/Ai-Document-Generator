@@ -22,7 +22,7 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
   return (
     <>
       <MobileBar />
-      <div className="mx-auto flex min-h-screen max-w-6xl gap-6 px-4 py-6 sm:px-6">
+      <div className="mx-auto flex min-h-screen max-w-7xl gap-6 px-4 py-6 sm:px-6">
         <Sidebar />
         <main className="min-w-0 flex-1">
           {/* Page-level isolation: a crashing page shows a fallback, never a blank screen. */}

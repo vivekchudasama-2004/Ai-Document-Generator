@@ -10,8 +10,8 @@ type Detail = {
   documents: { id: string; title: string; type: string; status: string }[];
 };
 
-export default function ProjectDetail({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params);
+export default function ProjectDetail({ params }: { params: { id: string } }) {
+  const { id } = params;
   const [doc, setDoc] = useState<Detail | null>(null);
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
