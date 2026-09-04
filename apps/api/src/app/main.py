@@ -15,7 +15,7 @@ from app.core.rate_limit import limiter
 from app.services.llm.nim_client import BudgetExceeded, ModelUnavailable
 from app.routes import (
     admin, auth, detect, documents, export, generate, humanize, meta,
-    models, projects, sections, templates,
+    models, projects, rag, sections, templates,
 )
 
 logging.basicConfig(level=get_settings().LOG_LEVEL.upper())
@@ -74,6 +74,17 @@ async def security_headers(request: Request, call_next):
     return response
 
 
+def _fail_fast_prod_secrets() -> None:
+    import os
+    if os.environ.get("VERCEL") and get_settings().JWT_SECRET == "dev-only-change-me":
+        raise RuntimeError(
+            "Refusing to boot: JWT_SECRET is the dev default — set a real secret in Vercel env"
+        )
+
+
+_fail_fast_prod_secrets()
+
+
 @app.get("/api/health")
 def health():
     from app.services import detector
@@ -92,7 +103,7 @@ def health():
 
 for router in (
     meta.router, auth.router, projects.router, documents.router, sections.router,
-    generate.router, detect.router, humanize.router, export.router,
+    generate.router, detect.router, humanize.router, export.router, rag.router,
     templates.router, admin.router, models.router,
 ):
     app.include_router(router, prefix="/api")

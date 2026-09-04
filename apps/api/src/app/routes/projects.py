@@ -35,17 +35,17 @@ def create_project(body: dict, user=Depends(get_current_user), db: Session = Dep
 
 @router.get("/projects")
 def list_projects(
-    q: str = "", limit: int = 20, offset: int = 0,
+    q: str = "", limit: int = 20, offset: int = 0, cursor: str | None = None,
     user=Depends(get_current_user), db: Session = Depends(get_db),
 ):
-    items, total = project_repo.list_for_user(
-        db, user_id=str(user.id), q=q, limit=min(limit, 100), offset=offset
+    items, total, next_cursor = project_repo.list_for_user(
+        db, user_id=str(user.id), q=q, limit=min(limit, 100), offset=offset, cursor=cursor
     )
     out = []
     for p in items:
         doc_count = db.query(Document).filter(Document.project_id == p.id).count()
         out.append({"id": p.id, "title": p.title, "slug": p.slug, "docCount": doc_count})
-    return {"items": out, "total": total}
+    return {"items": out, "total": total, "next_cursor": next_cursor}
 
 
 @router.get("/projects/{project_id}")

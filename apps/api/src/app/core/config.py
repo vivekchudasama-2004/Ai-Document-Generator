@@ -31,16 +31,19 @@ class Settings(BaseSettings):
     COOKIE_SECURE: bool = False  # True in prod (Vercel = https)
     REFRESH_EXPIRE_DAYS: int = 7
     RESEND_API_KEY: str = ""
-    RESEND_FROM: str = "DocuForge <vivekchudasama170@gmail.com>"
+    RESEND_FROM: str = "DocuForge <noreply@yourdomain.com>"
     PUBLIC_APP_URL: str = "http://localhost:3000"
     CLOUDINARY_URL: str = ""
     DETECTOR_MODE: str = "spacy+api"
     DEMO_MODE: bool = False
     SAPLING_API_KEY: str = ""
-    HF_TOKEN: str = ""
+    # --- Retrieval (embeddings API + stored vectors; no local ML, Vercel-safe) ---
+    EMBEDDING_API_URL: str = ""
+    EMBEDDING_API_KEY: str = ""
+    EMBEDDING_MODEL: str = ""
     LOG_LEVEL: str = "info"
     CORS_ORIGINS: str = "http://localhost:3000"
-    APP_VERSION: str = "1.10.0"
+    APP_VERSION: str = "1.13.0"
 
     @property
     def allowed_models(self) -> list[str]:

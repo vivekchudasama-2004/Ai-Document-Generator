@@ -21,3 +21,9 @@ class Section(Base):
     human_score: Mapped[float | None] = mapped_column(Numeric(5, 2), nullable=True)
     iteration: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     mermaid_svg: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # Retrieval: normalized embedding vector as JSON (see services/rag.py).
+    # Upgrade path is a native TiDB VECTOR column + vector index (ARCHITECTURE.md).
+    embedding_json: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # Which model produced embedding_json — vectors from different models are
+    # incomparable, so switching models requires backfill --all (see RAG status).
+    embedding_model: Mapped[str | None] = mapped_column(String(128), nullable=True)

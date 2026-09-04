@@ -1,5 +1,8 @@
 # DocuForge Humanized — Detailed Architecture & Project Plan
-**Version:** 1.10.0 | **Date:** 2026-09-03 | **Stack:** Open-Source + NVIDIA NIM on Vercel + TiDB Cloud | **Format:** Professional, 150 words/page, 100% Human Score Target
+**Version:** 1.13.0 | **Date:** 2026-09-04 | **Stack:** Open-Source + NVIDIA NIM on Vercel + TiDB Cloud | **Format:** Professional, 150 words/page, 100% Human Score Target
+**Changelog v1.13.0:** HF-local detector path deleted (can't run on serverless — see §6); retrieval foundation instead: embeddings-API + stored vectors (`services/rag.py`, `POST /api/rag/similar`, `sections.embedding_json`, migration `0002`, `scripts/backfill_embeddings.py`), 7/7 tests passing; native TiDB VECTOR upgrade path documented.
+**Changelog v1.12.0:** Studio humanizes section-by-section with live progress + Stop (no more 60s batch risk); per-doc model override in console (`PUT /documents/{id}` validates models); document search (`q` on `/api/documents` + project-page filter); `GET /api/stats` COUNT-only totals; cursor pagination (`cursor`/`next_cursor` over created_at+id) on projects/documents/exports; lazy Mermaid rendering; Vercel refuses to boot on dev JWT default.
+**Changelog v1.11.0:** Full 15-page restyle (editorial M3: kickers, figures, numbered rows, auth brand panel, stepped wizard, Lenis smooth scroll); Alembic migrations (`apps/api/alembic/` + `0001_initial`), `scripts/seed_data.py` + `scripts/eval.py` (5/5 passing); §13 tokens corrected to shipped M3 values; section editing is markdown textarea (TipTap deferred).
 **Changelog v1.10.0:** M3 Expressive re-theme (teal seed, tonal surfaces, stadium controls, Roboto); landing rebuilt ban-clean (list rows, tonal loop panel, static); scroll-reveal/lift/marquee retired.
 **Changelog v1.9.0:** `/profile` page + `PUT /auth/me` (name edit, password rotation); missing `user_models`/`admin_audits` tables created live; wizard/model selects de-truncated.
 **Changelog v1.8.1:** Studio rewrite-strength selector (light/medium/aggressive, single + batch); `components/fx/Confetti` + `components/layout/Sidebar` extracted; `lib/utils.ts` + `lib/api/server.ts` added; `available` verified on every catalog model.
@@ -27,7 +30,7 @@ DocuForge Humanized is an end-to-end document intelligence platform that lets an
 
 ### 4.1 Functional Requirements (Must/Should/Could)
 - **F1 [Must]** Generate doc from prompt (idea, type, tone, depth) for 12 templates: `rdd, prd, brd, technical_design, system_design, architecture, development_plan, runbook, sop, incident_report, postmortem, pm_roadmap` — streaming sections.
-- **F2 [Must]** Detect AI score per section using spaCy `en_core_web_sm` + `textstat` heuristic on Vercel (burstiness, passive ratio, cliche hits, contraction ratio, Flesch) + Sapling API fallback + HF `roberta-base-openai-detector` local opt-in, and show human% badge with reason breakdown.
+- **F2 [Must]** Detect AI score per section using spaCy `en_core_web_sm` + `textstat` heuristic (burstiness, passive ratio, cliche hits, contraction ratio, Flesch) + Sapling API fallback, and show human% badge with reason breakdown. No local transformer path: serverless functions can't host torch/weights (see §6 binding constraints).
 - **F3 [Must]** Humanize loop: rewrite with user-selected NIM model (default 8b) → re-detect with spaCy+textstat until human% ≥95% (user sees 100% target) max 3 iterations, per-section or all. User picks generation + humanize models in wizard/studio; per-doc override stored.
 - **F4 [Must]** 150 words/page pagination engine with professional styling.
 - **F5 [Must]** Export PDF/DOCX with cover, TOC, headers, footers, page numbers, diagrams.
@@ -50,9 +53,9 @@ DocuForge Humanized is an end-to-end document intelligence platform that lets an
 
 ### 6.1 High-Level (Open-Source + NIM + TiDB on Vercel — No Docker, TiDB-only)
 ```
-[ Next.js 14 Frontend — Vercel (apps/web) — Tailwind, TipTap, Mermaid ]
+[ Next.js 14 Frontend — Vercel (apps/web) — Tailwind, markdown textarea, Mermaid ]
         ↕ REST /api/* (JSON, JWT Bearer)
-[ FastAPI — Vercel Python Serverless (apps/api/src/app) ] — [ HF Detector (transformers, local) ]
+[ FastAPI — Vercel Python Serverless (apps/api/src/app) ] — [ Embeddings API (retrieval) ]
         ↕                         ↕
 [ TiDB Cloud (MySQL protocol, serverless) ]  [ NVIDIA NIM API (integrate.api.nvidia.com/v1) ]
    (users, projects, docs, sections)          [ Resend/SendGrid Email (forgot-password) ]
@@ -61,12 +64,13 @@ DocuForge Humanized is an end-to-end document intelligence platform that lets an
 ```
 No Docker/Nginx, no SQLite/volumes. Local `pnpm dev` (web:3000) + `uvicorn apps/api/src/app/main.py` (api:8000) proxies to same `/api/*` as Vercel production. Frontend never calls NIM/TiDB directly — backend proxies, validates JWT, rate-limits.
 
-**Vercel constraints (binding):** (a) PDF: MVP export = client print-CSS (`window.print`, `@page` CSS) — zero server deps. Full WeasyPrint PDF runs only in async worker (Render/Fly.io Docker) called via queue, uploads to Cloudinary. (b) Detector: Vercel default `DETECTOR_MODE=spacy+api` = spaCy `en_core_web_sm` + `textstat` heuristic + Sapling API fallback; HF-local only in local Docker profile (`DETECTOR_MODE=local`). `tiktoken` enforces token budgets before every NIM call. (c) Mermaid: rendered client-side with `mermaid.js`; backend stores SVG string only, never runs Mermaid CLI. (d) Long gen: `POST /api/generate/stream` uses SSE + Vercel `maxDuration: 60`, persists each section as it arrives so dropped streams resume.
+**Vercel constraints (binding):** (a) PDF: MVP export = client print-CSS (`window.print`, `@page` CSS) — zero server deps. Full WeasyPrint PDF runs only in async worker (Render/Fly.io Docker) called via queue, uploads to Cloudinary. (b) Detector: `DETECTOR_MODE=spacy+api` = spaCy `en_core_web_sm` + `textstat` heuristic + Sapling API fallback, everywhere including Vercel. No local transformer path exists or is planned: serverless functions cap at ~250MB unzipped (torch alone is ~800MB), have no persistent disk for weights, and no GPU. `tiktoken` enforces token budgets before every NIM call. (c) Mermaid: rendered client-side with `mermaid.js`; backend stores SVG string only, never runs Mermaid CLI. (d) Long gen: `POST /api/generate/stream` uses SSE + Vercel `maxDuration: 60`, persists each section as it arrives so dropped streams resume. (e) Retrieval is embeddings-API + stored vectors for the same reason — see §6.2 RAG Service.
 
 ### 6.2 Component Breakdown
-- **Frontend (apps/web):** Next.js 14 App Router, `src/app/(auth)` for login/signup/forgot, `src/app/(main)` for protected studio, `tokens.css` design system, paginated viewer, Mermaid renderer, TipTap editor. `middleware.ts` guards `(main)` routes via JWT cookie.
+- **Frontend (apps/web):** Next.js 14 App Router, `src/app/(auth)` for login/signup/forgot, `src/app/(main)` for protected studio, `tokens.css` design system, paginated viewer, Mermaid renderer, markdown textarea editor (TipTap deferred to v2). `middleware.ts` guards `(main)` routes via JWT cookie.
 - **Backend (apps/api/src/app):** Layered `routes → services → repositories → db` — never skip layer (`controllers/` merged into routes). `core/config.py` (TiDB + NIM + JWT + Resend env), `core/security.py` (JWT, bcrypt, forgot-token), `db/client.py` (TiDB SQLAlchemy singleton), `entities/*.py` (users, projects, docs, sections), `schemas/*.py` (auth, generate, humanize), `services/llm/nim_client.py` (NIM streaming), `services/detector.py` + `services/humanizer.py` + `services/pdf.py`.
-- **Detector Service:** spaCy `en_core_web_sm` (preload at import, `disable=["ner"]` unless entity density needed) + `textstat` (Flesch/grade) as the Vercel analyzer: burstiness = sent-length std via `doc.sents`, passive ratio via `nsubjpass`, cliche hits via Matcher (`delve, leverage, comprehensive, foster, in conclusion...`), contraction ratio, TTR, `tiktoken` budgets. Sapling API fallback; `transformers roberta-base-openai-detector` lazy only for `DETECTOR_MODE=local`. Heuristic-only fallback labeled `Demo estimate` + `DEMO_MODE` banner, never persisted as real `human_score`. Score response includes `reasons[]` (top 3 drivers) for the UI badge tooltip.
+- **Detector Service:** spaCy `en_core_web_sm` (preload at import, `disable=["ner"]` unless entity density needed) + `textstat` (Flesch/grade) as the analyzer: burstiness = sent-length std via `doc.sents`, passive ratio via `nsubjpass`, cliche hits via Matcher (`delve, leverage, comprehensive, foster, in conclusion...`), contraction ratio, TTR, `tiktoken` budgets. Sapling API fallback. Heuristic-only fallback labeled `Demo estimate` + `DEMO_MODE` banner, never persisted as real `human_score`. Score response includes `reasons[]` (top 3 drivers) for the UI badge tooltip.
+- **RAG Service (`services/rag.py`):** similar-section search with zero local ML. Embeddings come from any OpenAI-compatible `/v1/embeddings` API (`EMBEDDING_API_URL/KEY/MODEL`; empty = `503 RAG_NOT_CONFIGURED`); Voyage `input_type` is set correctly (`document` for stored sections, `query` for searches). Vectors are stored normalized as JSON on `sections.embedding_json` — refreshed automatically on every section write (edit, humanize single + batch; best-effort, never fails the request) and backfilled via `scripts/backfill_embeddings.py` (32/batch, re-runnable); ranking is exact Python cosine scoped to the caller's documents (`POST /api/rag/similar {text, top_k≤20, project_id?}` → `{items:[{section_id, document_id, document_title, section_title, score}]}`). Upgrade path when scale demands it: native TiDB `VECTOR` column + vector index, replacing `embedding_json` reads with `VEC_DISTANCE` ordering — no API contract change.
 - **NIM Integration:** `nim_client.py` with timeout 30s, retry 3x exp-backoff on 429/5xx, streaming, OpenAI-compatible `integrate.api.nvidia.com/v1`, env `NVIDIA_NIM_API_KEY`, cost-header logging, `NIM_MOCK=true` template fallback for offline demo, fallback chain generate `405b → 70b → 8b` on 429/5xx with `Retry-After` surfaced via SSE `event: model.fallback`, per-model `max_tokens` budgets in catalog + `tiktoken` pre-check (413 if over), `usage{prompt,completion,model}` persisted per document. Model catalog in `services/models.py` (id, label, role `generate|humanize|both`, context, cost tier, default flag). Defaults: generate `meta/llama-3.1-405b-instruct` (fallback 70b), humanize `meta/llama-3.1-8b-instruct`. User override via `generation_model` / `humanize_model` params (validated against `ALLOWED_MODELS`); per-doc choice stored on `documents`. `GET /api/meta/models` lists catalog + defaults + availability.
 - **Auth & Email:** `core/security.py` hashes with bcrypt, issues JWT with `sub=user_id(UUID)` + `role` claim (access 1h, refresh 7d), `require_role()` dependency for admin, forgot flow: `POST /api/auth/forgot-password` → creates `password_reset_tokens` (expires 15m) → Resend email with magic link `https://app.vercel.app/reset-password?token=xxx` → `POST /api/auth/reset-password`.
 
@@ -86,12 +90,12 @@ No Docker/Nginx, no SQLite/volumes. Local `pnpm dev` (web:3000) + `uvicorn apps/
 
 | Layer | Tool | License | Why Chosen |
 |-------|------|---------|------------|
-| Frontend | Next.js 14, React 18, Tailwind CSS, TipTap, Mermaid.js | MIT | Production-grade, paginated print CSS, open |
+| Frontend | Next.js 14, React 18, Tailwind CSS, Lenis, Mermaid.js | MIT | Production-grade, paginated print CSS, open |
 | Backend | FastAPI, Uvicorn, Pydantic, SQLModel | MIT | Fast, typed, auto docs |
 | DB | **TiDB Cloud** (MySQL-compatible Serverless) + SQLAlchemy + PyMySQL + Alembic | Apache 2.0 / BSL | Serverless, MySQL protocol, Vercel-native, auto-scale, HTAP | 
 | AI Generation | **NVIDIA NIM** (`llama-3.1-405b/8b`) via OpenAI-compatible API | Managed (your key) | Your existing key, generous free tier, best quality |
 | AI Humanization | Same NIM with humanize system prompt + self-hosted `Qwen2.5-7B` fallback via Ollama (optional) | Apache 2.0 | Free fallback if NIM offline |
-| Analyzer | spaCy `en_core_web_sm` + `textstat` + `tiktoken` (Vercel) + Sapling free API fallback | MIT | Burstiness/passive/cliche/Flesch reasons[]; ~ms, $0; HF opt-in via `DETECTOR_MODE=local` |
+| Analyzer | spaCy `en_core_web_sm` + `textstat` + `tiktoken` + Sapling free API fallback | MIT | Burstiness/passive/cliche/Flesch reasons[]; ~ms, $0 |
 | Models | NIM catalog (`services/models.py` + user picker, OpenAI-compatible) | Managed (your key) | Defaults 405b gen / 8b humanize; `ALLOWED_MODELS` validated override |
 | PDF | Client print-CSS (`@page`, MVP) + async worker (WeasyPrint + ReportLab + python-docx, Docker on Render/Fly) | BSD/MIT | MVP zero-deps; worker for pixel-perfect PDF/A |
 | Diagrams | mermaid.js client-side render, SVG string stored | MIT | No Mermaid CLI on serverless; backend sanitizes SVG (strip `<script>`/`on*`) |
@@ -101,10 +105,10 @@ No Docker/Nginx, no SQLite/volumes. Local `pnpm dev` (web:3000) + `uvicorn apps/
 | Storage (Objects) | **Cloudinary Free** (25GB, or free alternative: Vercel Blob free / S3 free tier) — for PDFs, DOCXs, Mermaid SVGs | Free tier | `cloudinary` SDK, `CLOUDINARY_URL`, signed upload, `secure_url` + `public_id` stored in TiDB |
 | Testing | Vitest, Playwright, pytest, httpx | MIT | Full coverage |
 
-**Free Detector APIs Used:** HF Pipeline (local, no key), Sapling `https://api.sapling.ai/api/v1/aidetect` (free 100 req/day), heuristic fallback ensures offline 100% coverage.
+**Free Detector APIs Used:** Sapling `https://api.sapling.ai/api/v1/aidetect` (free 100 req/day); heuristic fallback ensures offline 100% coverage.
 
 ## 8. AI Humanization Pipeline — To Achieve 100% Human Score
-**Step 1 Generate:** System prompt enforces human tone from start: “You are a senior tech writer. Vary sentence length 8-28 words, use contractions, active voice, occasional rhetorical question, concrete examples. Avoid AI phrases: ‘delve’, ‘in conclusion’, ‘leverage’.” **Step 2 Detect:** For each section, run detector → score `ai_prob` 0-1 → `human% = 100*(1-ai_prob)`. Show ring: green ≥90, amber 70-89, red <70. **Step 3 Humanize Loop (max 3):** If human% <95, call humanizer: prompt = “Rewrite to sound fully human. Keep meaning, 150 words count not needed here. Add burstiness, idiom, human imperfections. Avoid detector triggers.” Re-detect → if improved, store new version + diff. Loop until human% ≥95 or 3 tries. **Step 4 Verify:** Final aggregate doc human% = avg of sections. Badge “100% Human” if avg ≥95. User can manually edit then re-detect one section. **Fallback (DEMO_MODE only):** If detector offline, heuristic estimates (0th=45%, 1st=78%, 2nd=92%, 3rd=98%) shown with `Demo estimate` badge + banner, never written to `human_score`. Real scores require HF-local or Sapling API. Mock LLM path: `NIM_MOCK=true` serves template docs for offline demo.
+**Step 1 Generate:** System prompt enforces human tone from start: “You are a senior tech writer. Vary sentence length 8-28 words, use contractions, active voice, occasional rhetorical question, concrete examples. Avoid AI phrases: ‘delve’, ‘in conclusion’, ‘leverage’.” **Step 2 Detect:** For each section, run detector → score `ai_prob` 0-1 → `human% = 100*(1-ai_prob)`. Show ring: green ≥90, amber 70-89, red <70. **Step 3 Humanize Loop (max 3):** If human% <95, call humanizer: prompt = “Rewrite to sound fully human. Keep meaning, 150 words count not needed here. Add burstiness, idiom, human imperfections. Avoid detector triggers.” Re-detect → if improved, store new version + diff. Loop until human% ≥95 or 3 tries. **Step 4 Verify:** Final aggregate doc human% = avg of sections. Badge “100% Human” if avg ≥95. User can manually edit then re-detect one section. **Fallback (DEMO_MODE only):** If detector offline, heuristic estimates (0th=45%, 1st=78%, 2nd=92%, 3rd=98%) shown with `Demo estimate` badge + banner, never written to `human_score`. Real scores require the spaCy analyzer or Sapling API. Mock LLM path: `NIM_MOCK=true` serves template docs for offline demo.
 
 ## 9. Professional Format & 150 Words/Page Engine
 **CSS @page:** `size: A4; margin: 2.5cm 2cm 2.5cm 2cm; @bottom-center: counter(page) " / " counter(pages)`. **Cover:** Project title, subtitle (doc type), date, version, author. **TOC:** Auto from sections with dot leaders + page numbers (WeasyPrint `target-counter`). **Headers:** Document title on even, section on odd. **Pagination Algorithm:** `pdf.py` tokenizes into sentences → builds pages greedily to 150 words (±2) → if last page <75 words, borrow from previous → ensures no widow (single line orphan) → injects `page-break-after: always`. Word count excludes code/diagrams. **Diagrams:** Mermaid SVG scaled to fit page width, caption. **Typography:** Serif headings (Newsreader 700), sans body (Inter 400, 11pt, 1.6 line-height), code in JetBrains Mono.
@@ -121,7 +125,7 @@ password_reset_tokens(id CHAR(36) PRIMARY KEY DEFAULT (UUID()), user_id CHAR(36)
 -- projects & docs (user-owned)
 projects(id CHAR(36) PRIMARY KEY DEFAULT (UUID()), user_id CHAR(36) NOT NULL, title VARCHAR(255) NOT NULL, slug VARCHAR(255) UNIQUE, idea TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE, INDEX idx_projects_user (user_id));
 documents(id CHAR(36) PRIMARY KEY DEFAULT (UUID()), project_id CHAR(36) NOT NULL, user_id CHAR(36) NOT NULL, generation_model VARCHAR(128) DEFAULT 'meta/llama-3.1-405b-instruct', humanize_model VARCHAR(128) DEFAULT 'meta/llama-3.1-8b-instruct', type ENUM('rdd','prd','brd','technical_design','system_design','architecture','development_plan','runbook','sop','incident_report','postmortem','pm_roadmap'), tone ENUM('formal','startup','enterprise'), depth ENUM('brief','detailed'), title VARCHAR(255), status ENUM('draft','generating','humanizing','ready','exported'), human_score_avg DECIMAL(5,2), created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE, FOREIGN KEY (user_id) REFERENCES users(id), INDEX idx_docs_project (project_id), INDEX idx_docs_user (user_id));
-sections(id CHAR(36) PRIMARY KEY DEFAULT (UUID()), document_id CHAR(36) NOT NULL, title VARCHAR(255), order_idx INT, content_md MEDIUMTEXT, content_humanized_md MEDIUMTEXT, word_count INT, ai_score DECIMAL(5,2), human_score DECIMAL(5,2), iteration INT DEFAULT 0, mermaid_svg MEDIUMTEXT, FOREIGN KEY (document_id) REFERENCES documents(id) ON DELETE CASCADE, INDEX idx_sections_doc (document_id));
+sections(id CHAR(36) PRIMARY KEY DEFAULT (UUID()), document_id CHAR(36) NOT NULL, title VARCHAR(255), order_idx INT, content_md MEDIUMTEXT, content_humanized_md MEDIUMTEXT, word_count INT, ai_score DECIMAL(5,2), human_score DECIMAL(5,2), iteration INT DEFAULT 0, mermaid_svg MEDIUMTEXT, embedding_json MEDIUMTEXT, FOREIGN KEY (document_id) REFERENCES documents(id) ON DELETE CASCADE, INDEX idx_sections_doc (document_id));
 versions(id CHAR(36) PRIMARY KEY DEFAULT (UUID()), document_id CHAR(36) NOT NULL, version_no INT, snapshot_json JSON, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (document_id) REFERENCES documents(id) ON DELETE CASCADE);
 exports(id CHAR(36) PRIMARY KEY DEFAULT (UUID()), document_id CHAR(36) NOT NULL, user_id CHAR(36) NOT NULL, format ENUM('pdf','docx'), path VARCHAR(512), cloudinary_public_id VARCHAR(255), secure_url VARCHAR(512), pages INT, words_total INT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (document_id) REFERENCES documents(id) ON DELETE CASCADE);
 ```
@@ -161,14 +165,14 @@ Base URL: `http://localhost:8000` | Auth: JWT enforced globally — every `/api/
 | 13 | `POST` | `/api/generate` | Generate full doc (non-stream) | `{project_id?, title, idea, generation_model?, humanize_model?, docType: "rdd|prd|brd|technical_design|system_design|architecture|development_plan|runbook|sop|incident_report|postmortem|pm_roadmap", tone: "formal|startup|enterprise", depth: "brief|detailed", audience?}` | `{documentId, sections:[{title,content_md,word_count,human_score}], pages_est}` | Calls selected generation_model (default 405b), splits 7-12 sections per template, auto-detects each with spaCy+textstat |
 | 14 | `POST` | `/api/generate/stream` | Generate streamed (SSE) | same as above | `text/event-stream` chunks `{section_title, delta, done, human_score}` | Frontend streaming |
 | 15 | `POST` | `/api/generate/regenerate-section` | Regen single section | `{documentId, sectionTitle, instruction, generation_model?}` | `{sectionId, newContent, human_score}` |  |
-| 16 | `POST` | `/api/detect` | Detect one text | `{text}` | `{ai_prob:0-1, human_percent:0-100, label:"human|ai|mixed", confidence, details:{burstiness, passive_ratio, cliche_hits, flesch}, reasons:[]}` | spaCy+textstat → sapling fallback → HF local opt-in |
+| 16 | `POST` | `/api/detect` | Detect one text | `{text}` | `{ai_prob:0-1, human_percent:0-100, label:"human|ai|mixed", confidence, details:{burstiness, passive_ratio, cliche_hits, flesch}, reasons:[]}` | spaCy+textstat → sapling fallback |
 | 17 | `POST` | `/api/detect/batch` | Detect batch (per-section) | `{texts:[{id,text}]}` | `{results:[{id, human_percent, ai_prob}]}` | For doc-wide scoring |
-| 18 | `GET` | `/api/detect/status` | Detector readiness | — | `{ready, analyzer:"en_core_web_sm+textstat", mode:"spacy+api|local", sapling_reachable:bool}` |  |
+| 18 | `GET` | `/api/detect/status` | Detector readiness | — | `{ready, analyzer:"en_core_web_sm+textstat", mode:"spacy+api", sapling_reachable:bool}` |  |
 | 19 | `POST` | `/api/humanize` | Humanize one section (loop) | `{sectionId, strength: "light|medium|aggressive", humanize_model?, maxIterations?:3}` | `{sectionId, oldContent, newContent, oldHuman, newHuman, iterations, diff:{added, removed}, human_percent_final}` | Uses selected humanize_model (default 8b), rewrites until ≥95% |
-| 20 | `POST` | `/api/humanize/batch` | Humanize all sections | `{documentId, strength?, humanize_model?}` | `{documentId, sectionsUpdated, avgHumanBefore, avgHumanAfter, iterations_total}` | Batch loop |
+| 20 | `POST` | `/api/humanize/batch` | Humanize all sections | `{documentId, strength?, humanize_model?}` | `{documentId, sectionsUpdated, avgHumanBefore, avgHumanAfter, iterations_total}` | Kept for API use; the studio humanizes sequentially (one `/api/humanize` per weak section, live progress + Stop) to stay under Vercel `maxDuration` |
 | 21 | `POST` | `/api/humanize/compare` | Diff two versions | `{sectionId, versionA?, versionB?}` | `{diff_html, diff_unified, word_diff}` |  |
 | 22 | `GET` | `/api/humanize/history/{sectionId}` | Iteration history | — | `{sectionId, history:[{iteration, human_percent, content_snapshot, created_at}]}` |  |
-| 23 | `PUT` | `/api/sections/{id}` | Edit section content + recount | `{content_md}` | `{id, word_count, human_score (re-detected)}` | TipTap edit |
+| 23 | `PUT` | `/api/sections/{id}` | Edit section content + recount | `{content_md}` | `{id, word_count, human_score (re-detected)}` | markdown textarea edit |
 | 24 | `POST` | `/api/mermaid/render` | Render Mermaid → SVG | `{code}` | `{svg, error?}` | For architecture diagrams |
 | 25 | `POST` | `/api/export/pdf` | Export PDF (150wpp) → upload to Cloudinary | `{documentId, theme?}` | `{exportId, secure_url (Cloudinary), public_id, pages, words_total, human_avg}` | WeasyPrint → `storage/cloudinary_client.py` |
 | 26 | `POST` | `/api/export/docx` | Export DOCX → Cloudinary | `{documentId}` | `{exportId, secure_url, public_id, pages, words_total}` | python-docx → Cloudinary |
@@ -185,8 +189,11 @@ Base URL: `http://localhost:8000` | Auth: JWT enforced globally — every `/api/
 | 37 | `GET` | `/api/admin/stats` | Usage stats (admin) | — | `{users, docs, tokens_by_model}` | Admin dashboard |
 | 38 | `GET` | `/api/documents/{id}/versions` | List version snapshots | — | `{items:[{version_no, created_at}]}` | Powers studio Versions card |
 | 39 | `POST` | `/api/sections/{id}/move` | Reorder outline | `{direction:"up\|down"}` | `{id, order_idx, moved}` | Swaps with neighbour; `moved:false` at edges; 422 `SECTION_BAD_MOVE` |
+| 40 | `GET` | `/api/stats` | Workspace totals (COUNT-only) | — | `{projects, documents, exports}` | Powers dashboard figures; no row fetching |
+| 41 | `POST` | `/api/rag/similar` | Similar sections (retrieval) | `{text, top_k?≤20, project_id?, embedding_model?}` | `{model, items:[{section_id, document_id, document_title, section_title, score}]}` | Embeddings API + stored vectors; 503 when unconfigured; per-request lite↔large switch (validated); re-run backfill `--all` after changing corpus model |
+| 42 | `GET` | `/api/rag/status` | Retrieval index health | — | `{configured, model, sections_total, sections_embedded, models_present}` | Shows what share is embedded and which models produced the vectors |
 
-**Validation & access:** Global auth dependency (401 without JWT; only `GET /api/health` public). All resource IDs UUID v4 (422/404 on invalid, no sequential ints ever). All data endpoints scoped `WHERE user_id = me` (return 404, not 403, on another user's UUID to avoid existence oracle). Pydantic 422 on bad input, XSS-escaped markdown + sanitized SVG, CORS prod + previews, `X-Request-Id` logged.
+**Validation & access:** Global auth dependency (401 without JWT; only `GET /api/health` public). All resource IDs UUID v4 (422/404 on invalid, no sequential ints ever). All data endpoints scoped `WHERE user_id = me` (return 404, not 403, on another user's UUID to avoid existence oracle). Lists paginate by cursor (`?cursor=` opaque `created_at+id`, `next_cursor` in response; legacy `offset` still honored when no cursor is sent). Pydantic 422 on bad input, XSS-escaped markdown + sanitized SVG, CORS prod + previews, `X-Request-Id` logged.
 
 **Error contract:** Every failure returns the envelope `{ detail: { code, message } }`. Machine codes live in `core/error_codes.py`, humanized copy in `core/messages.py`, raised only via `fail(status, code, **slots)` (`core/errors.py`). Global handlers map `BudgetExceeded → 413 MODEL_TOO_LONG` and `ModelUnavailable → 502 MODEL_UNAVAILABLE`. Frontend `lib/messages.ts` covers offline/stream fallbacks; `ApiError` carries `{ status, code, message }` and Toasts render the humanized message. Duplicate signup is `409 AUTH_EMAIL_TAKEN` (not 400).
 
@@ -221,7 +228,7 @@ POST /api/generate {idea:"AI SaaS for invoices", docType:"rdd"}
 
 **Route Groups & Guard:** `(auth)` is public, `(main)` is protected via `apps/web/middleware.ts` + `contexts/AuthContext.tsx` (stores `role` from JWT) → redirects to `/login` if unauthenticated. `(admin)` group (`/admin`) additionally requires `role==='admin'` → else redirect `/dashboard`. `apps/web/src/lib/api/client.ts` attaches `Authorization: Bearer` automatically.
 
-**Studio 3-Pane Breakdown (where 80% time is spent):** Left Outline = section list with `word_count` + `ScoreRing` (green/amber/red) + drag reorder; Center Paper = paginated A4 shadows, page numbers, Mermaid SVGs, TipTap inline edit; Right Console = global avg human ring, `Humanize All` button, per-section history timeline, strength slider, before/after diff.
+**Studio 3-Pane Breakdown (where 80% time is spent):** Left Outline = section list with `word_count` + `ScoreRing` (green/amber/red) + drag reorder; Center Paper = section sheets with word counts, Mermaid SVGs, markdown textarea inline edit; Right Console = global avg human ring, `Humanize All` button, per-section history timeline, strength slider, before/after diff.
 
 ### B) Generated Document Internal Pages (Professional PDF — 150 words/page, paginated)
 
@@ -278,7 +285,7 @@ DocuForge-Humanized/               # Monorepo
 │   ├── api/                       # Backend — FastAPI (Vercel Python)
 │   └── web/                       # Frontend — Next.js App Router (Vercel)
 ├── packages/                      # Shared code (types, ui) — future
-├── ml/                            # ML / Humanize & Detector (HF local)
+├── ml/                            # ML eval assets (detector golden pairs live in tests/)
 ├── knowledge-base/                # RAG source docs (templates, examples)
 ├── infra/                         # Vercel config (vercel.json) — No Docker/Nginx
 ├── docs/                          # Docs (ARCHITECTURE.md, templates)
@@ -319,7 +326,8 @@ apps/api/
 │       │   │   ├── models.py          # NIM catalog + ALLOWED_MODELS validation + defaults
 │       │   ├── storage/cloudinary_client.py # Cloudinary free upload (PDF/DOCX/SVG → secure_url)
 │       │   ├── generator.py       # prompt builder, section splitter
-│       │   ├── detector.py        # spaCy sm + textstat + tiktoken + sapling; HF only if DETECTOR_MODE=local
+│       │   ├── detector.py        # spaCy sm + textstat + tiktoken + sapling
+│       │   ├── rag.py             # embeddings-API retrieval, cosine ranking (no local ML)
 │       │   ├── humanizer.py       # rewrite loop (model override), spaCy verify gate, diff, history
 │       │   ├── pdf.py             # 150wpp builder (print-CSS payload + async worker job) → upload to Cloudinary
 │       │   └── mermaid.py         # sanitize client-rendered SVG (no CLI) → SVG → Cloudinary
@@ -333,16 +341,23 @@ apps/api/
 │       │   ├── generate.py        # /api/generate*
 │       │   ├── documents.py       # /api/documents*, /api/projects*
 │       │   ├── humanize.py
+│       │   ├── rag.py             # /api/rag/similar
 │       │   └── export.py
 │       └── middleware/
 │           └── cors.py
 ├── tests/                         # unit/, integration/, eval/golden_set.jsonl
 ├── scripts/
-│   ├── seed_data.py
-│   ├── migrate.py                 # alembic upgrade head
-│   └── eval.py                    # detector eval
-├── alembic/                       # Alembic for TiDB migrations
-└── requirements.txt               # fastapi, uvicorn, pymysql, jose, passlib, resend, spacy, textstat, tiktoken (+ en_core_web_sm wheel; weasyprint in worker only)
+│   ├── migrate.py                 # create_all bootstrap (needs TIDB_URL)
+│   ├── seed_data.py               # demo user + sample project (offline, no NIM; never seeds admins)
+│   ├── backfill_embeddings.py     # embed sections missing vectors (needs EMBEDDING_* + TIDB_URL; re-runnable)
+│   ├── eval.py                    # detector golden pairs (offline, exit 1 on failure)
+│   └── schema.sql                 # canonical DDL mirror of 0001_initial
+├── alembic/                       # Alembic for TiDB migrations (`alembic upgrade head`)
+│   ├── env.py                     # URL from settings, autogenerate over Base.metadata
+│   ├── versions/0001_initial.py   # 9 tables, UUID PKs, cascades
+│   └── versions/0002_section_embeddings.py  # sections.embedding_json (stored vectors)
+│   └── versions/0003_embedding_model.py     # sections.embedding_model (which model made the vector)
+└── requirements.txt               # fastapi, uvicorn, pymysql, jose, passlib, resend, spacy, textstat, tiktoken, alembic (+ en_core_web_sm wheel; weasyprint in worker only)
 ```
 **Rule:** `routes → services → repositories → db` — never skip layer (`controllers/` merged into routes). Replace TiDB without touching service.
 
@@ -392,7 +407,7 @@ apps/web/
 **12.3 Other Top-Level**
 ```
 packages/          # shared types (future)
-ml/                # local HF detector cache, humanize eval
+ml/                # detector golden pairs (see tests/test_rag.py + scripts/eval.py)
 knowledge-base/    # template examples, RAG docs
 infra/             # vercel.json, env docs — NO Dockerfile/Nginx
 docs/              # ARCHITECTURE.md, HUMANIZATION_GUIDE.md
@@ -401,24 +416,24 @@ scripts/           # migrate.sh, seed.sh
 
 **Vercel Deploy:** `apps/web` → `vercel --prod` (Next.js), `apps/api` → Vercel Python runtime (`api/index.py` → `app.main:app`), both share `TIDB_URL`, `NVIDIA_NIM_API_KEY`, `JWT_SECRET`, `RESEND_API_KEY` via Vercel Env. No Docker. Local: `pnpm dev` (web 3000) + `uvicorn apps/api/src/app/main.py:app --reload --port 8000`.
 
-## 13. UI/UX Design System — Outstanding & User-Friendly (Not AI-Generic)
-**Tokens (`tokens.css`):** `--paper: #FFFBF5; --ink: #141210; --accent: #FF6B35; --muted: #6B7280; --border: #E7E0D6; --radius: 14px; --shadow-paper: 0 20px 60px rgba(20,18,16,0.12)`. **Typography:** Newsreader 700 for H1/H2 (tight -0.02em), Inter 400/600 for body, JetBrains Mono for code. **Layout:** Dashboard grid of project cards (paper texture), studio 3-pane with resizable gutters, center paper has realistic shadow and page curl. **Motion:** Section streaming fade-in 200ms, score ring spring, paper lift on hover. **A11y:** Focus rings, 44px targets, keyboard nav, `prefers-reduced-motion`. **Craft:** Empty ghost doc, error with retry, loading skeletons per section, CSS confetti + "Reads fully human" state at doc avg ≥95%. **Theme:** light/dark via `ThemeContext` + `html.dark` CSS-var overrides (persisted `df-theme`, OS default, no-flash inline script); toggle in sidebar + landing. **Watermelon borrows:** variable-driven theming, bento stats strip on dashboard, lift-on-hover cards, animated score rings.
+## 13. UI/UX Design System — Editorial M3 (Not AI-Generic)
+**Tokens (`tokens.css` — the ONLY place for raw values):** `--paper: #f6f4f1; --surface: #ffffff; --surface-variant: #e4e7e5; --ink: #191c1c; --accent: #00696b; --on-accent: #ffffff; --accent-container: #6ff7e9; --on-accent-container: #00201c; --muted: #3f4948; --border: #d4dcd9; --radius: 16px; --radius-control: 999px` (dark theme flips to M3 dark tones; `color-scheme` set). No shadows anywhere (`--shadow-card: none`). **Typography:** Space Grotesk 700 display (tight -0.03em, `text-wrap: balance`), Roboto 400/500/700 body, JetBrains Mono for code/labels; `text-wrap: pretty` on paragraphs. **Signature elements:** sentence-case mono `.kicker` labels (never ALL-CAPS eyebrows), tabular `.figure` numerals, hairline divide-rows with mono index numerals, `.pill`/`.nchip` meta chips, M3 inverse `.panel-ink` as the one bold moment per page. **Layout:** quiet single-column flows, numbered editorial rows instead of card grids, sticky studio console/outline on desktop, compact stacks on 375px mobile (no overflow, no truncation). **Motion budget:** color fades, press scale, open/confirm/expand + one 200ms load entrance; Lenis wheel/anchor smoothing only (skipped under reduced motion, paused during theme wipe); scroll-reveal/lift retired. **A11y:** focus rings, 44px targets, keyboard nav, `prefers-reduced-motion` kills all motion. **Craft:** empty states with example actions, error with retry, per-section skeletons, CSS confetti + "Reads fully human" at doc avg ≥95%. **Theme:** light/dark via `ThemeContext` + `html.dark` var overrides (persisted `df-theme`, OS default, no-flash inline script, 260ms circle-wipe from click point); toggles in sidebar + landing.
 
 ## 14. Security, Deployment & DevOps (Vercel Free Tier — No Docker/Nginx)
 - **Security:** Validate all input (Pydantic), escape markdown + sanitize Mermaid SVG (`nh3`/`bleach`, strip `<script>`/`on*`), rate-limit (`slowapi` 60/min; forgot `5/min`/IP), CSP headers (`img-src data:` for inline SVG), bcrypt + JWT (access 1h, refresh 7d with rotation + reuse detection; httpOnly `Secure; SameSite=Lax` cookie for web, Bearer for API), no secrets in logs, `.env` gitignored, `npm audit`/`pip-audit` clean, TiDB TLS `ssl_ca`. CORS: prod `https://<app>.vercel.app` + previews `https://*.vercel.app` (or BFF proxy to skip CORS).
 - **Build:** No Docker. Frontend: Vercel builds `apps/web` (Next.js, `pnpm build`). Backend: Vercel Python builds `apps/api` (requirements.txt pinned). Lockfiles: `pnpm-lock.yaml`, `requirements.txt` hashed.
 - **Health:** `GET /api/health` (checks TiDB + NIM + detector) + `GET /api/auth/me` for auth.
-- **Deploy:** `git push` → Vercel auto-deploy. Env vars in Vercel Dashboard: `TIDB_URL`, `NVIDIA_NIM_API_KEY`, `JWT_SECRET`, `RESEND_API_KEY`, `HF_TOKEN` optional. Local mirrors prod: same env via `.env` at repo root. No `docker compose`.
+- **Deploy:** `git push` → Vercel auto-deploy. Env vars in Vercel Dashboard: `TIDB_URL`, `NVIDIA_NIM_API_KEY`, `JWT_SECRET`, `RESEND_API_KEY`, `EMBEDDING_API_URL/KEY/MODEL` (optional; retrieval off when empty). Local mirrors prod: same env via `.env` at repo root. No `docker compose`.
 - **Logs:** Vercel Runtime Logs (JSON, no PII), `LOG_LEVEL` env.
 
 ## 15. Development Roadmap (4 Sprints, 3 Weeks MVP)
 **Sprint 0 (Day 1-2):** Pre-flight, `ARCHITECTURE.md`, scaffold, tokens, health endpoint, `.env.example`, `users.role` + manual admin seed SQL (Appx D). **Sprint 1 (Day 3-7):** Generator (model override) + detector (`DETECTOR_MODE=spacy+api`: spaCy sm + textstat) + humanizer backend + TiDB Cloud, SSE streaming with per-section persist/resume. **Sprint 2 (Day 8-12):** Frontend studio 3-pane + ModelSelector (wizard/studio/settings via `GET /api/meta/models`) + pagination preview + score rings with reasons[] tooltip. **Sprint 3 (Day 13-18):** PDF 150wpp engine + Mermaid + export + versioning + polish + QA (unit/integration/e2e). **Sprint 4 (Day 19-21):** Security pass, a11y, docs, screenshots, ship.
 
 ## 16. Cost & Resources
-**Open-source cost:** $0 (all MIT/BSD). **NIM:** Your existing API key, free tier sufficient (405b ~1K docs/month). **Hosting:** Vercel Free ($0) + TiDB free tier + Cloudinary free 25GB = $0 MVP (no VPS, no Docker). **No paid detectors:** HF local + heuristic = $0; Sapling free tier optional. **Team:** 1 full-stack (this build).
+**Open-source cost:** $0 (all MIT/BSD). **NIM:** Your existing API key, free tier sufficient (405b ~1K docs/month). **Hosting:** Vercel Free ($0) + TiDB free tier + Cloudinary free 25GB = $0 MVP (no VPS, no Docker). **No paid detectors:** spaCy + heuristic = $0; Sapling free tier optional. **Team:** 1 full-stack (this build).
 
 ## 17. Risks & Mitigations
-- **Detector false positive:** Mitigate with ensemble (HF + heuristic), show confidence, allow manual override.
+- **Detector false positive:** Mitigate with ensemble (spaCy + Sapling + heuristic), show confidence, allow manual override.
 - **NIM downtime:** Mock generator with template docs + “Demo Mode” banner, queue retry.
 - **150wpp drift:** Unit tests per page ±2 words, snapshot tests on PDFs.
 - **Vision API limits:** Cache diagrams, fallback to ASCII.
@@ -480,14 +495,18 @@ CLOUDINARY_URL=cloudinary://api_key:api_secret@cloud_name
 #     CLOUDINARY_API_SECRET=xxx
 # Fallback: if missing, exports save locally + served via /api/exports/{id}/download
 
-# Detector / demo switches
-DETECTOR_MODE=spacy+api  # or: local (HF model, local-Docker profile only)
+# Detector switches
+DETECTOR_MODE=spacy+api  # fixed: spaCy sm + textstat + Sapling fallback (no local-ML path)
 DEFAULT_GENERATION_MODEL=meta/llama-3.1-405b-instruct
 DEFAULT_HUMANIZE_MODEL=meta/llama-3.1-8b-instruct
 ALLOWED_MODELS=meta/llama-3.1-405b-instruct,meta/llama-3.1-70b-instruct,meta/llama-3.1-8b-instruct,nvidia/llama-3.1-nemotron-nano-8b-v1
-HF_TOKEN=hf_xxx  # only for DETECTOR_MODE=local
 NIM_MOCK=false  # true = offline template docs
 DEMO_MODE=false  # true = banner + 'Demo estimate' badges, never persist heuristic scores
+# Retrieval — similar-section search (embeddings API + stored vectors, no local ML)
+EMBEDDING_API_URL=https://api.voyageai.com/v1
+EMBEDDING_API_KEY=pa_xxx
+EMBEDDING_MODEL=voyage-3-lite
+# Empty = /api/rag/* answers 503; works with any OpenAI-compatible /v1/embeddings endpoint.
 LOG_LEVEL=info
 ```
 No `PORT` needed on Vercel; local: `apps/web` 3000, `apps/api` 8000. Vercel functions: `maxDuration: 60` on generate/humanize/export routes.

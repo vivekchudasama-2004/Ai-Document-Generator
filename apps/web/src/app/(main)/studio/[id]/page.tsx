@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useCallback, useEffect, useState } from "react";
+import { use, useCallback, useEffect, useRef, useState } from "react";
 import { api, ApiError } from "@/lib/api/client";
 import { ScoreRing, SectionSkeleton, Toast } from "@/components/ui/ui";
 import RefreshButton from "@/components/ui/RefreshButton";
@@ -10,8 +10,12 @@ import Confetti from "@/components/fx/Confetti";
 import ErrorBoundary from "@/components/ui/ErrorBoundary";
 import type { DocumentDetail } from "@/types";
 
-const STRENGTHS = ["light", "medium", "aggressive"] as const;
-type Strength = (typeof STRENGTHS)[number];
+const STRENGTHS = [
+  { id: "light", hint: "Gentle polish" },
+  { id: "medium", hint: "Balanced rewrite" },
+  { id: "aggressive", hint: "Deep rework" },
+] as const;
+type Strength = (typeof STRENGTHS)[number]["id"];
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
@@ -28,6 +32,9 @@ export default function StudioPage({ params }: { params: Promise<{ id: string }>
   const [diffsBySection, setDiffsBySection] = useState<Record<string, string>>({});
   const [versions, setVersions] = useState<VersionEntry[]>([]);
   const [strength, setStrength] = useState<Strength>("medium");
+  const [batchProgress, setBatchProgress] = useState<{ done: number; total: number; label: string } | null>(null);
+  const [modelCatalog, setModelCatalog] = useState<{ id: string; label: string }[]>([]);
+  const stopBatch = useRef(false);
 
   // Reload document + snapshots. stable reference so RefreshButton can call it.
   const loadDocument = useCallback(async () => {
@@ -42,6 +49,13 @@ export default function StudioPage({ params }: { params: Promise<{ id: string }>
   useEffect(() => {
     loadDocument().catch(() => setError("Couldn't open this document."));
   }, [loadDocument]);
+
+  // Model catalog for the per-document override (once per studio visit).
+  useEffect(() => {
+    api<{ models: { id: string; label: string }[] }>("/api/meta/models")
+      .then((m) => setModelCatalog(m.models.map((x) => ({ id: x.id, label: x.label }))))
+      .catch(() => undefined);
+  }, []);
 
   async function humanizeSection(sectionId: string) {
     setBusySectionId(sectionId);
@@ -60,26 +74,67 @@ export default function StudioPage({ params }: { params: Promise<{ id: string }>
     }
   }
 
+  // Sequential pass: one section per request, so a 12-section doc can never
+  // trip Vercel's 60s maxDuration the way the old single batch call could.
+  // Progress is shown live; Stop halts after the in-flight section.
   async function humanizeAllSections() {
-    if (!document) return;
-    setBusySectionId("all");
+    if (!document || batchProgress) return;
+    const targets = document.sections.filter((s) => (s.human_score ?? 0) < 95);
+    if (!targets.length) {
+      setNotice("Every section is already above 95% — nothing to do.");
+      return;
+    }
+    const before = document.human_score_avg ?? 0;
+    stopBatch.current = false;
     setNotice("");
-    try {
-      const result = await api<{ avgHumanBefore: number; avgHumanAfter: number; sectionsUpdated: number }>(
-        "/api/humanize/batch",
-        {
+    setBatchProgress({ done: 0, total: targets.length, label: targets[0].title });
+    let ok = 0;
+    for (const section of targets) {
+      if (stopBatch.current) break;
+      setBusySectionId(section.id);
+      setBatchProgress({ done: ok, total: targets.length, label: section.title });
+      try {
+        await api("/api/humanize", {
           method: "POST",
-          body: JSON.stringify({ document_id: document.id, strength, humanize_model: document.humanize_model }),
-        },
+          body: JSON.stringify({ section_id: section.id, strength, humanize_model: document.humanize_model }),
+        });
+        ok += 1;
+        setBatchProgress({ done: ok, total: targets.length, label: section.title });
+      } catch {
+        // Keep going — the summary names the shortfall.
+      }
+    }
+    setBusySectionId(null);
+    let after: number | null = null;
+    if (ok > 0) {
+      try {
+        after = (await api<DocumentDetail>(`/api/documents/${documentId}`)).human_score_avg;
+      } catch {
+        after = null;
+      }
+    }
+    setBatchProgress(null);
+    await loadDocument();
+    if (stopBatch.current) {
+      setNotice(`Stopped after ${ok} of ${targets.length} sections.`);
+    } else if (ok === targets.length) {
+      setNotice(`Humanized ${ok} sections${after != null ? `: ${before}% → ${after}% human` : "."}`);
+    } else {
+      setNotice(`Humanized ${ok} of ${targets.length} sections — retry the rest individually.`);
+    }
+  }
+
+  async function saveModelOverride(field: "generation_model" | "humanize_model", value: string) {
+    if (!document) return;
+    try {
+      const updated = await api<{ generation_model: string; humanize_model: string }>(
+        `/api/documents/${documentId}`,
+        { method: "PUT", body: JSON.stringify({ [field]: value }) },
       );
-      setNotice(
-        `Humanized ${result.sectionsUpdated} sections: ${result.avgHumanBefore}% → ${result.avgHumanAfter}% human.`,
-      );
-      await loadDocument();
+      setDocument({ ...document, ...updated });
+      setNotice(`Model updated — future runs use ${modelShortName(updated[field])}.`);
     } catch (err) {
-      setNotice(err instanceof ApiError ? err.message : "Humanize failed.");
-    } finally {
-      setBusySectionId(null);
+      setNotice(err instanceof ApiError ? err.message : "Model update failed.");
     }
   }
 
@@ -178,19 +233,27 @@ export default function StudioPage({ params }: { params: Promise<{ id: string }>
   const noticeKind =
     notice.includes("failed") || notice.includes("Couldn't") ? "error" : "success";
   const modelShortName = (modelId: string) => modelId.split("/").pop();
+  const weakCount = document.sections.filter((s) => (s.human_score ?? 0) < 95).length;
 
   return (
     <div>
-      <header className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="font-display text-3xl font-bold">{document.title}</h1>
-          <p className="text-sm text-[var(--muted)]">
-            {document.type}, {document.status}, {document.humanize_model}
-          </p>
+      <header>
+        <p className="kicker">{document.type} · {document.status}</p>
+        <div className="mt-2 flex flex-wrap items-end justify-between gap-4">
+          <h1 className="font-display min-w-0 max-w-[20ch] text-balance text-3xl font-bold sm:text-4xl">
+            {document.title}
+          </h1>
+          <div className="flex shrink-0 items-center gap-3">
+            <ScoreRing value={document.human_score_avg} size={52} />
+            <div className="font-mono text-xs leading-relaxed text-[var(--muted)]">
+              <p>{document.sections.length} sections</p>
+              <p>{weakCount} below 95%</p>
+            </div>
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          <ScoreRing value={document.human_score_avg} />
+        <div className="mt-4 flex flex-wrap items-center gap-2 border-y border-[var(--border)] py-3">
           <RefreshButton onRefresh={loadDocument} label="Refresh" />
+          <span className="mx-1 hidden h-5 w-px bg-[var(--border)] sm:block" aria-hidden />
           <button
             className="btn-ghost px-4 py-2 text-sm font-semibold"
             disabled={busySectionId !== null}
@@ -199,7 +262,7 @@ export default function StudioPage({ params }: { params: Promise<{ id: string }>
             DOCX
           </button>
           <button
-            className="btn-accent px-4 py-2 text-sm font-semibold"
+            className="btn-accent px-5 py-2 text-sm font-semibold"
             disabled={busySectionId !== null}
             onClick={() => exportDocument("pdf")}
           >
@@ -213,30 +276,53 @@ export default function StudioPage({ params }: { params: Promise<{ id: string }>
         </div>
       ) : null}
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-[220px_minmax(0,1fr)_240px]">
-        <nav aria-label="Outline" className="h-fit lg:sticky lg:top-6">
-          <div className="flex gap-2 overflow-x-auto pb-1 lg:grid lg:grid-cols-1 lg:overflow-visible lg:rounded-2xl lg:border lg:border-[var(--border)] lg:bg-[var(--surface)] lg:p-3">
-          {document.sections.map((section) => (
+      <div className="mt-6 grid gap-8 lg:grid-cols-[230px_minmax(0,1fr)_250px]">
+        <nav aria-label="Outline" className="h-fit min-w-0 lg:sticky lg:top-6">
+          <p className="kicker mb-2">Outline</p>
+          <div className="flex gap-2 overflow-x-auto pb-1 lg:grid lg:grid-cols-1 lg:overflow-visible lg:rounded-2xl lg:border lg:border-[var(--border)] lg:bg-[var(--surface)] lg:p-2">
+          {document.sections.map((section, i) => (
             <a
               key={section.id}
               href={`#sec-${section.id}`}
-              className="rowlink flex shrink-0 items-center justify-between gap-2 rounded-full border border-[var(--border)] px-3 py-2 text-sm lg:rounded-lg lg:border-0"
+              className="rowlink flex shrink-0 items-center gap-2.5 rounded-full border border-[var(--border)] px-3 py-2 text-sm lg:rounded-xl lg:border-0"
             >
+              <span className="font-mono text-xs text-[var(--muted)]" aria-hidden>
+                {String(i + 1).padStart(2, "0")}
+              </span>
               <span className="max-w-32 truncate font-medium sm:max-w-none">{section.title}</span>
               <ScoreRing value={section.human_score} size={30} />
             </a>
           ))}
           </div>
-          <button
-            className="btn-accent mt-3 w-full py-2 text-sm font-semibold"
-            disabled={busySectionId !== null}
-            onClick={humanizeAllSections}
-          >
-            {busySectionId === "all" ? "Humanizing…" : "Humanize all"}
-          </button>
+          {batchProgress ? (
+            <div className="mt-3 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4" aria-live="polite">
+              <p className="text-sm font-semibold">
+                Humanizing {Math.min(batchProgress.done + 1, batchProgress.total)} of {batchProgress.total}
+              </p>
+              <p className="mt-0.5 truncate text-xs text-[var(--muted)]">{batchProgress.label}</p>
+              <div className="meter mt-2" aria-hidden>
+                <span style={{ width: `${(batchProgress.done / batchProgress.total) * 100}%` }} />
+              </div>
+              <button
+                type="button"
+                className="btn-ghost mt-3 w-full py-2 text-sm font-semibold"
+                onClick={() => { stopBatch.current = true; }}
+              >
+                Stop after this section
+              </button>
+            </div>
+          ) : (
+            <button
+              className="btn-accent mt-3 w-full py-2.5 text-sm font-semibold"
+              disabled={busySectionId !== null || weakCount === 0}
+              onClick={humanizeAllSections}
+            >
+              {weakCount ? `Humanize ${weakCount} weak` : "All sections clear"}
+            </button>
+          )}
         </nav>
 
-        <div className="space-y-5">
+        <div className="min-w-0 space-y-5">
           {document.sections.map((section, index) => (
             // One bad section must never kill the studio: each card is isolated.
             <ErrorBoundary key={section.id} label={`“${section.title}” section`}>
@@ -265,9 +351,10 @@ export default function StudioPage({ params }: { params: Promise<{ id: string }>
           ))}
         </div>
 
-        <aside className="paper-card h-fit p-4 lg:sticky lg:top-6" aria-label="Humanize console">
+        <aside className="paper-card h-fit min-w-0 p-5 lg:sticky lg:top-6" aria-label="Humanize console">
           <ErrorBoundary label="humanize console">
-          <h3 className="font-display text-lg font-bold">Humanize console</h3>
+          <p className="kicker">Console</p>
+          <h2 className="font-display mt-1.5 text-lg font-bold">Humanize console</h2>
           <div className="mt-3 flex items-center gap-3">
             <ScoreRing value={document.human_score_avg} size={56} />
             <p className="text-sm text-[var(--muted)]">
@@ -281,39 +368,60 @@ export default function StudioPage({ params }: { params: Promise<{ id: string }>
             </p>
           ) : null}
           <div className="mt-4">
-            <p id="strength-label" className="text-sm font-semibold text-[var(--muted)]">
+            <p id="strength-label" className="text-sm font-semibold">
               Rewrite strength
             </p>
-            <div className="mt-1.5 grid grid-cols-3 gap-1 rounded-xl border border-[var(--border)] p-1" role="group" aria-labelledby="strength-label">
+            <div className="mt-1.5 grid grid-cols-3 gap-1 rounded-2xl border border-[var(--border)] p-1" role="group" aria-labelledby="strength-label">
               {STRENGTHS.map((level) => (
                 <button
-                  key={level}
+                  key={level.id}
                   type="button"
-                  aria-pressed={strength === level}
-                  onClick={() => setStrength(level)}
-                  className={`rounded-lg px-2 py-2 text-xs font-bold capitalize transition-colors ${
-                    strength === level ? "bg-[var(--accent)] text-white" : "text-[var(--muted)]"
+                  aria-pressed={strength === level.id}
+                  title={level.hint}
+                  onClick={() => setStrength(level.id)}
+                  className={`rounded-xl px-2 py-2 text-xs font-bold capitalize transition-colors ${
+                    strength === level.id ? "bg-[var(--accent)] text-white" : "text-[var(--muted)]"
                   }`}
                 >
-                  {level}
+                  {level.id}
                 </button>
               ))}
             </div>
+            <p className="mt-1.5 text-xs text-[var(--muted)]">
+              {STRENGTHS.find((s) => s.id === strength)?.hint}
+            </p>
           </div>
-          <dl className="mt-4 space-y-2 text-sm">
-            <div className="flex justify-between">
-              <dt className="text-[var(--muted)]">Writing model</dt>
-              <dd className="font-mono text-xs">{modelShortName(document.generation_model)}</dd>
+          <div className="mt-4 space-y-3 border-t border-[var(--border)] pt-4">
+            {(["generation_model", "humanize_model"] as const).map((field) => {
+              const current = document[field];
+              const ids = modelCatalog.map((m) => m.id);
+              const options = ids.includes(current) ? ids : [current, ...ids];
+              return (
+                <label key={field} className="block min-w-0">
+                  <span className="text-sm text-[var(--muted)]">
+                    {field === "generation_model" ? "Writing model" : "Humanizer"}
+                  </span>
+                  <select
+                    className="field mt-1 truncate font-mono text-xs"
+                    value={options.includes("auto") || current !== "auto" ? current : "auto"}
+                    onChange={(e) => saveModelOverride(field, e.target.value)}
+                    aria-label={field === "generation_model" ? "Writing model for this document" : "Humanizer model for this document"}
+                  >
+                    <option value="auto">Auto (recommended)</option>
+                    {options.filter((id) => id !== "auto").map((id) => (
+                      <option key={id} value={id} title={id}>
+                        {modelCatalog.find((m) => m.id === id)?.label ?? modelShortName(id)}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              );
+            })}
+            <div className="flex justify-between gap-2 text-sm">
+              <span className="text-[var(--muted)]">Status</span>
+              <span className="font-semibold capitalize">{document.status}</span>
             </div>
-            <div className="flex justify-between">
-              <dt className="text-[var(--muted)]">Humanizer</dt>
-              <dd className="font-mono text-xs">{modelShortName(document.humanize_model)}</dd>
-            </div>
-            <div className="flex justify-between">
-              <dt className="text-[var(--muted)]">Status</dt>
-              <dd className="font-semibold">{document.status}</dd>
-            </div>
-          </dl>
+          </div>
           <VersionsCard versions={versions} busy={busySectionId !== null} onRestore={restoreVersion} />
           </ErrorBoundary>
         </aside>

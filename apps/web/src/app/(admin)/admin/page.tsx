@@ -44,25 +44,41 @@ export default function AdminPage() {
 
   return (
     <div>
-      <h1 className="font-display text-3xl font-bold">Admin</h1>
-      <section className="paper-card mt-6 p-5">
-        <h2 className="font-display text-lg font-bold">Usage</h2>
-        <p className="mt-2 text-sm text-[var(--muted)]">
-          {String(stats.users)} users, {String(stats.docs)} documents
-        </p>
-      </section>
-      <section className="paper-card mt-4 p-5">
-        <h2 className="font-display text-lg font-bold">Users</h2>
+      <p className="kicker">Admin</p>
+      <h1 className="font-display mt-2 text-balance text-3xl font-bold sm:text-4xl">Workspace oversight</h1>
+      <p className="mt-2 text-[var(--muted)]">Role-gated. Every change here is audit-logged.</p>
+
+      <dl className="mt-8 grid grid-cols-3 gap-3 border-t border-[var(--border)] pt-6 sm:gap-6" aria-label="Usage stats">
+        {[
+          ["Users", String(stats.users ?? 0)],
+          ["Documents", String(stats.docs ?? 0)],
+          ["Tokens", String((stats as { tokens_by_model?: unknown }).tokens_by_model ? "tracked" : "—")],
+        ].map(([label, value]) => (
+          <div key={label} className="min-w-0">
+            <dt className="sr-only">{label}</dt>
+            <dd className="figure truncate text-3xl sm:text-5xl">{value}</dd>
+            <dd className="mt-1.5 text-xs text-[var(--muted)] sm:text-sm">{label}</dd>
+          </div>
+        ))}
+      </dl>
+
+      <section className="paper-card mt-8 p-5 sm:p-6" aria-labelledby="users-h">
+        <div className="flex items-baseline justify-between gap-3">
+          <h2 id="users-h" className="font-display text-lg font-bold">Users</h2>
+          <p className="font-mono text-xs text-[var(--muted)]">{users.length} total</p>
+        </div>
         <ErrorBoundary label="user list">
         {notice ? <div className="mt-3"><Toast kind="success" message={notice} /></div> : null}
-        <ul className="mt-3 divide-y divide-[var(--border)]">
+        <ul className="mt-3 divide-y divide-[var(--border)] border-t border-[var(--border)]">
           {users.map((u) => (
-            <li key={u.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
-              <div className="min-w-0">
-                <p className="font-semibold">{u.display_name ?? u.email}</p>
-                <p className="break-all font-mono text-xs text-[var(--muted)]">{u.email}, {u.role}</p>
+            <li key={u.id} className="flex flex-wrap items-center justify-between gap-3 py-3.5">
+              <div className="min-w-0 flex-1">
+                <p className="truncate font-semibold">{u.display_name ?? u.email}</p>
+                <p className="mt-0.5 break-all font-mono text-xs text-[var(--muted)]">
+                  {u.email} · {u.role} · since {new Date(u.created_at).toLocaleDateString()}
+                </p>
               </div>
-              <select aria-label={`Role for ${u.email}`} className="field max-w-40" value={u.role}
+              <select aria-label={`Role for ${u.email}`} className="field w-32 shrink-0" value={u.role}
                 onChange={(e) => setRole(u.id, e.target.value)}>
                 <option value="user">user</option>
                 <option value="admin">admin</option>

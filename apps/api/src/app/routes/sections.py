@@ -30,6 +30,8 @@ def edit_section(
     row = section_repo.update_content(db, row, body.content_md, count_words(body.content_md))
     row.human_score = score["human_percent"]
     row.ai_score = score["ai_prob"]
+    from app.services import rag as _rag
+    _rag.refresh_section_embedding(row)  # best-effort: search stays fresh
     db.commit()
     return {"id": row.id, "word_count": row.word_count, "human_score": row.human_score}
 

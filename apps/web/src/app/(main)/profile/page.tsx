@@ -18,6 +18,7 @@ export default function ProfilePage() {
 
   if (!user) return null;
   const displayName = name ?? user.display_name ?? "";
+  const initial = (displayName || user.email).trim().charAt(0).toUpperCase();
 
   async function saveName(e: React.FormEvent) {
     e.preventDefault();
@@ -68,14 +69,22 @@ export default function ProfilePage() {
 
   return (
     <div className="max-w-2xl">
-      <h1 className="font-display text-3xl font-bold">Profile</h1>
-      <p className="mt-1 text-[var(--muted)]">
-        Signed in as <span className="font-mono text-xs">{user.email}</span>, {user.role} account.
-      </p>
+      <div className="flex items-center gap-4">
+        <span className="font-display flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-[var(--accent-container)] text-2xl font-bold text-[var(--on-accent-container)]" aria-hidden>
+          {initial}
+        </span>
+        <div className="min-w-0">
+          <h1 className="font-display truncate text-3xl font-bold">{displayName || "Profile"}</h1>
+          <p className="mt-0.5 truncate text-sm text-[var(--muted)]">
+            <span className="font-mono text-xs">{user.email}</span> · {user.role}
+          </p>
+        </div>
+      </div>
       <ErrorBoundary label="profile">
         <div className="paper-card mt-6 divide-y divide-[var(--border)] p-5 sm:p-6">
           <section className="pb-6" aria-labelledby="name-h">
             <h2 id="name-h" className="text-base font-semibold">Display name</h2>
+            <p className="mt-0.5 text-sm text-[var(--muted)]">Shown across the workspace. Anything under 100 characters.</p>
             <form onSubmit={saveName} className="mt-3 flex flex-col gap-3 sm:flex-row">
               <input
                 className="field flex-1"
@@ -85,7 +94,7 @@ export default function ProfilePage() {
                 aria-label="Display name"
                 maxLength={100}
               />
-              <button className="btn-accent px-6 font-semibold" disabled={busy}>
+              <button className="btn-accent shrink-0 px-6 py-2.5 font-semibold" disabled={busy}>
                 Save name
               </button>
             </form>
@@ -93,16 +102,17 @@ export default function ProfilePage() {
           </section>
           <section className="pt-6" aria-labelledby="pw-h">
             <h2 id="pw-h" className="text-base font-semibold">Change password</h2>
+            <p className="mt-0.5 text-sm text-[var(--muted)]">You'll log in with the new one next time.</p>
             <form onSubmit={savePassword} className="mt-3 grid gap-3 sm:grid-cols-2">
-              <div>
+              <div className="min-w-0">
                 <label className="text-sm font-semibold" htmlFor="current">Current password</label>
                 <input id="current" type="password" autoComplete="current-password"
-                  className="field mt-1" value={current} onChange={(e) => setCurrent(e.target.value)} />
+                  className="field mt-1.5" value={current} onChange={(e) => setCurrent(e.target.value)} />
               </div>
-              <div>
+              <div className="min-w-0">
                 <label className="text-sm font-semibold" htmlFor="next">New password</label>
                 <input id="next" type="password" autoComplete="new-password"
-                  className="field mt-1" value={next} onChange={(e) => setNext(e.target.value)} />
+                  className="field mt-1.5" value={next} onChange={(e) => setNext(e.target.value)} placeholder="8+ characters" />
               </div>
               <div className="sm:col-span-2">
                 <button className="btn-ghost w-full font-semibold sm:w-auto sm:px-6" disabled={busy}>

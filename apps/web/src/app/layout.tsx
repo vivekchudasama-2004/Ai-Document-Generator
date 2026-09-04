@@ -4,6 +4,7 @@ import "./tokens.css";
 import "./globals.css";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
+import SmoothScroll from "@/components/fx/SmoothScroll";
 
 const roboto = Roboto({ subsets: ["latin"], weight: ["400", "500", "700"], variable: "--font-body" });
 const grotesk = Space_Grotesk({ subsets: ["latin"], weight: ["500", "700"], variable: "--font-display" });
@@ -46,6 +47,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           }}
         />
         <ThemeProvider>
+          <SmoothScroll />
           <AuthProvider>{children}</AuthProvider>
         </ThemeProvider>
       </body>

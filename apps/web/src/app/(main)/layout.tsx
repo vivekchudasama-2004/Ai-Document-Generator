@@ -1,6 +1,7 @@
 "use client";
 
-import { usePathname } from "next/navigation";
+import { useEffect } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import ErrorBoundary from "@/components/ui/ErrorBoundary";
 import Sidebar from "@/components/layout/Sidebar";
@@ -8,12 +9,15 @@ import Sidebar from "@/components/layout/Sidebar";
 export default function MainLayout({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
   const path = usePathname();
+  const router = useRouter();
+
+  // Vercel/Next convention: navigation as an effect, never in render.
+  useEffect(() => {
+    if (!loading && !user) router.replace("/login");
+  }, [loading, user, router]);
 
   if (loading) return <main className="mx-auto max-w-5xl px-6 py-16"><div className="skeleton h-8 w-1/3" /></main>;
-  if (!user) {
-    window.location.href = "/login";
-    return null;
-  }
+  if (!user) return null;
 
   return (
     <div className="mx-auto flex min-h-screen max-w-6xl gap-6 px-6 py-6">

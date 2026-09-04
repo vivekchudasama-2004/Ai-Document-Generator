@@ -23,15 +23,23 @@ def get_owned(db: Session, *, user_id: str, document_id: str) -> Document | None
 
 def list_for_user(
     db: Session, *, user_id: str, project_id: str | None = None,
-    doc_type: str | None = None, limit: int = 20, offset: int = 0,
-) -> tuple[list[Document], int]:
+    doc_type: str | None = None, q: str = "", limit: int = 20, offset: int = 0,
+    cursor: str | None = None,
+) -> tuple[list[Document], int, str | None]:
+    from app.core.pagination import apply_cursor
+
     query = db.query(Document).filter(Document.user_id == user_id)
     if project_id:
         query = query.filter(Document.project_id == project_id)
     if doc_type:
         query = query.filter(Document.type == doc_type)
+    if q:
+        query = query.filter(Document.title.ilike(f"%{q}%"))
     total = query.count()
-    return query.order_by(Document.updated_at.desc()).offset(offset).limit(limit).all(), total
+    if cursor or offset == 0:
+        items, next_cursor = apply_cursor(query, Document, cursor, limit)
+        return items, total, next_cursor
+    return query.order_by(Document.updated_at.desc()).offset(offset).limit(limit).all(), total, None
 
 
 def add_sections(db: Session, document_id: str, sections: list[dict]) -> list[Section]:

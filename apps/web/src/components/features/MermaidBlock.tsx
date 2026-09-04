@@ -1,14 +1,40 @@
 "use client";
 
-import { useEffect, useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 
-/** Client-side Mermaid render (strict security). Falls back to code on error. */
+/**
+ * Client-side Mermaid render (strict security), lazy by viewport.
+ * Diagrams render when scrolled near — 4+ heavy SVGs no longer mount at once.
+ * Falls back to code on error; renders immediately without IntersectionObserver.
+ */
 export default function MermaidBlock({ code }: { code: string }) {
   const uid = useId().replace(/[^a-zA-Z0-9]/g, "");
+  const boxRef = useRef<HTMLDivElement | null>(null);
+  const [visible, setVisible] = useState(false);
   const [svg, setSvg] = useState("");
   const [failed, setFailed] = useState(false);
 
   useEffect(() => {
+    const box = boxRef.current;
+    if (!box || typeof IntersectionObserver === "undefined") {
+      setVisible(true);
+      return;
+    }
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((e) => e.isIntersecting)) {
+          setVisible(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: "240px" },
+    );
+    observer.observe(box);
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    if (!visible) return;
     let live = true;
     (async () => {
       try {
@@ -23,12 +49,15 @@ export default function MermaidBlock({ code }: { code: string }) {
     return () => {
       live = false;
     };
-  }, [code, uid]);
+  }, [visible, code, uid]);
 
-  if (failed || !svg) {
+  if (failed || (visible && !svg)) {
     return (
       <pre className="bg-code mt-3 overflow-x-auto rounded-lg p-4 font-mono text-xs">{code}</pre>
     );
+  }
+  if (!visible) {
+    return <div ref={boxRef} className="skeleton mt-3 h-44" aria-label="Loading diagram" />;
   }
   return (
     <div

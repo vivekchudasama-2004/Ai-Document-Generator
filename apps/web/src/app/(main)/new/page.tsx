@@ -1,7 +1,7 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useState } from "react";
 import ModelSelector from "@/components/features/ModelSelector";
 import ErrorBoundary from "@/components/ui/ErrorBoundary";
 import { apiStream, ApiError } from "@/lib/api/client";
@@ -14,11 +14,17 @@ const TYPES: { id: DocType; label: string; hint: string }[] = [
   { id: "technical_design", label: "Technical Design", hint: "Components & interfaces" },
 ];
 
-export default function NewDocPage() {
+const VALID_TYPES = new Set(TYPES.map((t) => t.id));
+
+function Wizard() {
   const router = useRouter();
-  const [title, setTitle] = useState("");
-  const [idea, setIdea] = useState("");
-  const [docType, setDocType] = useState<DocType>("rdd");
+  const params = useSearchParams();
+  const [title, setTitle] = useState(params.get("title") ?? "");
+  const [idea, setIdea] = useState(params.get("idea") ?? "");
+  const initialType = params.get("type");
+  const [docType, setDocType] = useState<DocType>(
+    initialType && VALID_TYPES.has(initialType as DocType) ? (initialType as DocType) : "rdd",
+  );
   const [tone, setTone] = useState("formal");
   const [depth, setDepth] = useState("detailed");
   const [models, setModels] = useState({ generation: "", humanize: "" });
@@ -61,59 +67,103 @@ export default function NewDocPage() {
   }
 
   return (
-    <div className="max-w-2xl">
-      <h1 className="font-display text-3xl font-bold">New document</h1>
-      <p className="mt-1 text-[var(--muted)]">Idea → drafted, scored sections in about a minute.</p>
-      <ErrorBoundary label="document wizard">
-      <form onSubmit={submit} className="paper-card mt-6 space-y-5 p-5 sm:p-6" noValidate>
-        <div>
-          <label className="text-sm font-semibold" htmlFor="title">Title</label>
-          <input id="title" className="field mt-1" value={title}
-            onChange={(e) => setTitle(e.target.value)} placeholder="E-commerce platform RDD" />
-          <FieldError message={errors.title} />
+    <form onSubmit={submit} className="mt-8 space-y-10" noValidate>
+      <section aria-labelledby="brief-h">
+        <p className="kicker">01 · The brief</p>
+        <h2 id="brief-h" className="font-display mt-2 text-2xl font-bold">What are we writing?</h2>
+        <div className="paper-card mt-4 space-y-5 p-5 sm:p-6">
+          <div>
+            <label className="text-sm font-semibold" htmlFor="title">Title</label>
+            <input id="title" className="field mt-1.5" value={title}
+              onChange={(e) => setTitle(e.target.value)} placeholder="E-commerce platform RDD" />
+            <FieldError message={errors.title} />
+          </div>
+          <div>
+            <label className="text-sm font-semibold" htmlFor="idea">The idea</label>
+            <textarea id="idea" rows={4} className="field mt-1.5 py-3" value={idea}
+              onChange={(e) => setIdea(e.target.value)}
+              placeholder="A marketplace for independent bookstores with shared inventory…" />
+            <FieldError message={errors.idea} />
+          </div>
         </div>
-        <div>
-          <label className="text-sm font-semibold" htmlFor="idea">The idea</label>
-          <textarea id="idea" rows={3} className="field mt-1 py-3" value={idea}
-            onChange={(e) => setIdea(e.target.value)}
-            placeholder="A marketplace for independent bookstores with shared inventory…" />
-          <FieldError message={errors.idea} />
+      </section>
+
+      <section aria-labelledby="shape-h">
+        <p className="kicker">02 · The shape</p>
+        <h2 id="shape-h" className="font-display mt-2 text-2xl font-bold">What kind of document?</h2>
+        <div className="mt-4 grid gap-2" role="radiogroup" aria-label="Document type">
+          {TYPES.map((t) => (
+            <button
+              key={t.id}
+              type="button"
+              role="radio"
+              aria-checked={docType === t.id}
+              onClick={() => setDocType(t.id)}
+              className={`flex items-baseline gap-4 border-b border-[var(--border)] py-4 text-left transition-colors ${
+                docType === t.id ? "border-[var(--accent)]" : ""
+              }`}
+            >
+              <span className={`nchip shrink-0 ${docType === t.id ? "" : "opacity-50"}`} aria-hidden>
+                {docType === t.id ? "●" : "○"}
+              </span>
+              <span className="min-w-0">
+                <span className="block text-base font-semibold">{t.label}</span>
+                <span className="block text-sm text-[var(--muted)]">{t.hint}</span>
+              </span>
+            </button>
+          ))}
         </div>
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="mt-4 grid gap-4 sm:grid-cols-2">
           <label className="block min-w-0">
-            <span className="text-sm font-semibold">Type</span>
-            <select className="field mt-1 truncate" value={docType} onChange={(e) => setDocType(e.target.value as DocType)}>
-              {TYPES.map((t) => <option key={t.id} value={t.id} title={`${t.label} — ${t.hint}`}>{t.label} — {t.hint}</option>)}
-            </select>
-          </label>
-          <label className="block">
             <span className="text-sm font-semibold">Tone</span>
-            <select className="field mt-1" value={tone} onChange={(e) => setTone(e.target.value)}>
+            <select className="field mt-1.5" value={tone} onChange={(e) => setTone(e.target.value)}>
               <option value="formal">Formal</option>
               <option value="startup">Startup</option>
               <option value="enterprise">Enterprise</option>
             </select>
           </label>
-          <label className="block">
+          <label className="block min-w-0">
             <span className="text-sm font-semibold">Depth</span>
-            <select className="field mt-1" value={depth} onChange={(e) => setDepth(e.target.value)}>
+            <select className="field mt-1.5" value={depth} onChange={(e) => setDepth(e.target.value)}>
               <option value="detailed">Detailed</option>
               <option value="brief">Brief</option>
             </select>
           </label>
         </div>
-        <ModelSelector value={models} onChange={setModels} />
-        {failed ? <Toast kind="error" message={failed} /> : null}
-        {busy ? (
-          <div className="space-y-2" aria-live="polite">
-            <SectionSkeleton />
-            {progress.map((p) => <p key={p} className="text-sm text-[var(--muted)]">✓ {p}</p>)}
-          </div>
-        ) : null}
-        <button className="btn-accent w-full font-semibold" disabled={busy}>
-          {busy ? "Drafting…" : "Generate document"}
-        </button>
-      </form>
+      </section>
+
+      <section aria-labelledby="models-h">
+        <p className="kicker">03 · The minds</p>
+        <h2 id="models-h" className="font-display mt-2 text-2xl font-bold">Which models?</h2>
+        <div className="paper-card mt-4 p-5 sm:p-6">
+          <ErrorBoundary label="model picker">
+            <ModelSelector value={models} onChange={setModels} />
+          </ErrorBoundary>
+        </div>
+      </section>
+
+      {failed ? <Toast kind="error" message={failed} /> : null}
+      {busy ? (
+        <div className="space-y-2" aria-live="polite">
+          <SectionSkeleton />
+          {progress.map((p) => <p key={p} className="text-sm text-[var(--muted)]">✓ {p}</p>)}
+        </div>
+      ) : null}
+      <button className="btn-accent w-full py-3.5 text-base font-semibold" disabled={busy}>
+        {busy ? "Drafting…" : "Generate document"}
+      </button>
+    </form>
+  );
+}
+
+export default function NewDocPage() {
+  return (
+    <div className="max-w-2xl">
+      <p className="kicker">New document</p>
+      <h1 className="font-display mt-2 text-balance text-3xl font-bold sm:text-4xl">From idea to draft in about a minute</h1>
+      <p className="mt-2 max-w-[52ch] text-[var(--muted)]">Three short decisions. Sections arrive scored, ready to humanize.</p>
+      <ErrorBoundary label="document wizard">
+        <Suspense><Wizard /></Suspense>
       </ErrorBoundary>
     </div>
   );

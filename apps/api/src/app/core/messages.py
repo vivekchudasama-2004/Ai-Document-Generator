@@ -30,6 +30,10 @@ MESSAGES: dict[str, str] = {
     CODE.MODEL_UNAVAILABLE: "The writing service is busy. Your draft is safe — try again shortly.",
     # --- platform ---
     CODE.DB_NOT_CONFIGURED: "The database isn't connected. Set TIDB_URL and restart the API.",
+    CODE.RAG_NOT_CONFIGURED: "Similar-search is off. Set EMBEDDING_API_URL, EMBEDDING_API_KEY and EMBEDDING_MODEL first.",
+    CODE.RAG_EMPTY_QUERY: "Type something to search for first.",
+    CODE.RAG_BAD_TOP_K: "top_k must be a number between 1 and 20.",
+    CODE.RAG_EMBED_FAILED: "The embeddings service didn't answer. Try again in a moment.",
 }
 
 

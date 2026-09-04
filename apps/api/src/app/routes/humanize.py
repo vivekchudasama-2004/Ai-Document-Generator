@@ -30,6 +30,8 @@ async def humanize(body: HumanizeIn, user=Depends(get_current_user), db: Session
     row.word_count = count_words(result["new_content"])
     row.human_score = result["new_human"]
     row.iteration = result["iterations"]
+    from app.services import rag as _rag
+    _rag.refresh_section_embedding(row)  # best-effort: search stays fresh
     db.commit()
     return {"sectionId": row.id, **result, "human_percent_final": result["new_human"]}
 
@@ -56,6 +58,8 @@ async def humanize_batch(
         row.word_count = count_words(result["new_content"])
         row.human_score = result["new_human"]
         row.iteration = result["iterations"]
+        from app.services import rag as _rag
+        _rag.refresh_section_embedding(row)  # best-effort: search stays fresh
         updated += 1
     db.commit()
     after = [float(s.human_score or 0) for s in document_repo.get_sections(db, str(doc.id))]

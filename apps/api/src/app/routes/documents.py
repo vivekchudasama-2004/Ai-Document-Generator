@@ -66,16 +66,18 @@ def create_draft(body: dict, user=Depends(get_current_user), db: Session = Depen
 
 @router.get("/documents")
 def list_docs(
-    project_id: str | None = None, type: str | None = None, limit: int = 20,
+    project_id: str | None = None, type: str | None = None, q: str = "", limit: int = 20,
+    cursor: str | None = None,
     user=Depends(get_current_user), db: Session = Depends(get_db),
 ):
-    items, total = document_repo.list_for_user(
-        db, user_id=str(user.id), project_id=project_id, doc_type=type,
-        limit=min(limit, 100), offset=0,
+    items, total, next_cursor = document_repo.list_for_user(
+        db, user_id=str(user.id), project_id=project_id, doc_type=type, q=q,
+        limit=min(limit, 100), offset=0, cursor=cursor,
     )
     return {
         "items": [{"id": d.id, "title": d.title, "type": d.type, "status": d.status} for d in items],
         "total": total,
+        "next_cursor": next_cursor,
     }
 
 
@@ -100,14 +102,24 @@ def update_doc(
     document_id: UUID, body: dict,
     user=Depends(get_current_user), db: Session = Depends(get_db),
 ):
+    from app.services.llm.models import ModelNotAllowed, resolve_model
+
     row = document_repo.get_owned(db, user_id=str(user.id), document_id=str(document_id))
     if not row:
         fail(404, CODES.DOC_NOT_FOUND)
     for field in ("title", "tone", "depth"):
         if body.get(field):
             setattr(row, field, body[field])
+    for field, role in (("generation_model", "generate"), ("humanize_model", "humanize")):
+        if body.get(field):
+            try:
+                extra = tuple(user_model_repo.enabled_ids(db, str(user.id)))
+                setattr(row, field, resolve_model(role, body[field], extra_allowed=extra))
+            except ModelNotAllowed as exc:
+                fail(422, CODES.MODEL_NOT_ALLOWED, model=exc.model)
     db.commit()
-    return {"id": row.id, "title": row.title}
+    return {"id": row.id, "title": row.title,
+            "generation_model": row.generation_model, "humanize_model": row.humanize_model}
 
 
 @router.delete("/documents/{document_id}")

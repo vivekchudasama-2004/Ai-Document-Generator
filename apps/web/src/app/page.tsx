@@ -6,30 +6,35 @@ import { ScoreRing, ThemeToggle } from "@/components/ui/ui";
 const FEATURES = [
   {
     title: "A loop, not a prompt",
-    body: "Draft, score each section, rewrite the weak ones. Every pass is versioned with a diff.",
+    body: "Draft, score each section, rewrite the weak ones. Every pass is versioned with a before/after diff — nothing is ever lost.",
   },
   {
     title: "Scores that explain themselves",
-    body: "Rhythm, voice, and diction. Each badge lists its top reasons.",
+    body: "Rhythm, voice, and diction, measured per section. Each badge lists its top reasons, so you know what to fix.",
   },
   {
     title: "150 words a page",
-    body: "Sentence-aware pagination with a cover, contents, headers and footers.",
+    body: "Sentence-aware pagination with a cover, contents, running headers and footers. Print-ready, not print-ish.",
   },
   {
     title: "Your models, your call",
-    body: "Auto picks the cheapest capable writer, or pin your own per document.",
+    body: "Auto picks the cheapest capable writer, or pin your own per document — generation and humanizing separately.",
   },
   {
     title: "Private by design",
-    body: "JWT on every endpoint, user and admin roles, opaque IDs.",
+    body: "JWT on every endpoint, user and admin roles, opaque IDs that can't be enumerated. Your drafts are yours.",
   },
 ];
 
 const STEPS = [
-  { n: 1, t: "Describe the idea", d: "A line or two. Pick a type, tone, and depth." },
-  { n: 2, t: "Watch it de-robot itself", d: "Sections arrive scored. Humanize the weak ones." },
-  { n: 3, t: "Export print-ready pages", d: "150 words a page, diagrams intact, PDF or DOCX." },
+  { n: 1, t: "Describe the idea", d: "A line or two. Pick a type, tone, and depth — plus which models write and rewrite." },
+  { n: 2, t: "Watch it de-robot itself", d: "Sections arrive scored. Humanize the weak ones individually or all at once." },
+  { n: 3, t: "Export print-ready pages", d: "150 words a page, diagrams intact, cover and contents included. PDF or DOCX." },
+];
+
+const TEMPLATE_NAMES = [
+  "RDD", "PRD", "BRD", "Technical Design", "System Design", "Architecture",
+  "Dev Plan", "Runbook", "SOP", "Incident Report", "Postmortem", "Roadmap",
 ];
 
 export default function Landing() {
@@ -56,6 +61,7 @@ export default function Landing() {
           <nav className="hidden items-center gap-6 text-sm font-medium md:flex" aria-label="Sections">
             <a href="#how" className="nav-underline">How it works</a>
             <a href="#features" className="nav-underline">Features</a>
+            <a href="#templates" className="nav-underline">Templates</a>
             <a href="#sample" className="nav-underline">Sample</a>
           </nav>
           <nav className="flex items-center gap-2 sm:gap-3" aria-label="Account">
@@ -70,31 +76,29 @@ export default function Landing() {
         </div>
       </header>
 
-      <section className="mx-auto grid max-w-6xl items-center gap-8 px-5 pb-10 pt-10 sm:px-6 md:grid-cols-2 md:gap-10 md:pt-16">
-        <div>
-          <p className="text-sm font-semibold text-[var(--accent-ink)]">
-            Generate, detect, humanize
-          </p>
-          <h1 className="font-display mt-3 text-balance text-[2.75rem] font-bold leading-[1.02] sm:text-6xl md:text-[4.25rem]">
+      <section className="mx-auto grid max-w-6xl items-center gap-8 px-5 pb-12 pt-12 sm:px-6 md:grid-cols-[1.1fr_minmax(0,1fr)] md:gap-12 md:pt-20">
+        <div className="min-w-0">
+          <p className="kicker">Generate · Detect · Humanize</p>
+          <h1 className="font-display mt-3 text-balance text-[2.75rem] font-bold leading-[1.02] sm:text-6xl md:text-[4.5rem]">
             Idea in. Human-feeling document out.
           </h1>
-          <p className="mt-4 max-w-xl text-pretty text-base leading-relaxed text-[var(--muted)]">
-            Client-ready RDDs, PRDs and design docs, with diagrams and
+          <p className="mt-5 max-w-xl text-pretty text-base leading-relaxed text-[var(--muted)] sm:text-lg">
+            Client-ready RDDs, PRDs and design docs — with diagrams and
             150-words-a-page typesetting, rewritten until they read human.
           </p>
-          <div className="mt-7 flex flex-col gap-3 sm:flex-row">
-            <Link href="/signup" className="btn-accent justify-center px-7 py-3 font-semibold">
+          <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+            <Link href="/signup" className="btn-accent cta justify-center px-7 py-3.5 font-semibold">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
                 <path d="M12 20h9" />
                 <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
               </svg>
               Draft your first doc
             </Link>
-            <Link href="/login" className="btn-ghost justify-center px-7 py-3 font-semibold">
+            <Link href="/login" className="btn-ghost justify-center px-7 py-3.5 font-semibold">
               Open the studio
             </Link>
           </div>
-          <dl className="mt-8 grid max-w-md grid-cols-3 gap-3">
+          <dl className="mt-10 grid max-w-md grid-cols-3 gap-3 border-t border-[var(--border)] pt-6">
             {[
               ["90s", "idea to draft"],
               ["95%+", "human target"],
@@ -102,8 +106,8 @@ export default function Landing() {
             ].map(([v, l]) => (
               <div key={l} className="min-w-0">
                 <dt className="sr-only">{l}</dt>
-                <dd className="font-display text-[1.6rem] font-bold leading-none sm:text-4xl">{v}</dd>
-                <dd className="mt-1 text-xs text-[var(--muted)] sm:text-sm">{l}</dd>
+                <dd className="figure text-[1.6rem] sm:text-4xl">{v}</dd>
+                <dd className="mt-1.5 text-xs text-[var(--muted)] sm:text-sm">{l}</dd>
               </div>
             ))}
           </dl>
@@ -111,7 +115,7 @@ export default function Landing() {
 
         {/* The one bold moment: the loop as an inverse panel with oversized numerals. */}
         <figure
-          className="panel-ink p-6 sm:p-8"
+          className="panel-ink min-w-0 p-6 sm:p-8"
           aria-label="One section improving from 72 to 98 percent human across two passes"
         >
           <figcaption className="text-sm font-semibold opacity-80">One section, two passes</figcaption>
@@ -139,46 +143,70 @@ export default function Landing() {
       </section>
 
       <section id="features" className="mx-auto max-w-6xl scroll-mt-20 px-5 py-12 sm:px-6 md:py-16">
-        <h2 className="font-display max-w-xl text-balance text-3xl font-bold leading-tight sm:text-4xl">
+        <p className="kicker">What you get</p>
+        <h2 className="font-display mt-3 max-w-xl text-balance text-3xl font-bold leading-tight sm:text-4xl">
           Everything a client-ready doc needs
         </h2>
-        <ul className="mt-6 divide-y divide-[var(--border)] border-y border-[var(--border)]">
-          {FEATURES.map((f) => (
-            <li key={f.title} className="grid gap-1 py-5 sm:grid-cols-[200px_minmax(0,1fr)] sm:gap-6">
+        <ul className="mt-8 divide-y divide-[var(--border)] border-y border-[var(--border)]">
+          {FEATURES.map((f, i) => (
+            <li key={f.title} className="grid gap-1 py-6 sm:grid-cols-[64px_200px_minmax(0,1fr)] sm:items-baseline sm:gap-6">
+              <span className="font-mono text-sm text-[var(--muted)]" aria-hidden>
+                {String(i + 1).padStart(2, "0")}
+              </span>
               <h3 className="text-base font-semibold">{f.title}</h3>
               <p className="max-w-[60ch] text-sm leading-relaxed text-[var(--muted)]">{f.body}</p>
             </li>
           ))}
         </ul>
-        <div className="mt-6 flex flex-col gap-3 rounded-2xl bg-[var(--accent-container)] p-6 text-[var(--on-accent-container)] sm:flex-row sm:items-center sm:justify-between">
-          <p className="font-display text-2xl font-bold">Twelve templates. Three minutes.</p>
-          <Link href="/signup" className="btn-accent shrink-0 px-6 py-3 font-semibold">
+        <div className="mt-6 flex flex-col gap-3 rounded-2xl bg-[var(--accent-container)] p-6 text-[var(--on-accent-container)] sm:flex-row sm:items-center sm:justify-between sm:p-8">
+          <p className="font-display text-balance text-2xl font-bold">Twelve templates. Three minutes.</p>
+          <Link href="/signup" className="btn-accent shrink-0 px-6 py-3 text-center font-semibold">
             Start free
           </Link>
         </div>
       </section>
 
-      <section id="how" className="scroll-mt-20 border-y border-[var(--border)] bg-[var(--surface)]">
+      <section id="templates" className="scroll-mt-20 border-y border-[var(--border)] bg-[var(--surface)]">
         <div className="mx-auto max-w-6xl px-5 py-12 sm:px-6 md:py-16">
-          <h2 className="font-display text-3xl font-bold sm:text-4xl">Ninety seconds, three moves</h2>
-          <ol className="mt-8 grid gap-8 md:grid-cols-3">
-            {STEPS.map((s) => (
-              <li key={s.n} className="flex gap-4">
-                <span className="nchip h-fit shrink-0" aria-hidden>{s.n}</span>
-                <div>
-                  <h3 className="text-lg font-semibold">{s.t}</h3>
-                  <p className="mt-1 text-sm leading-relaxed text-[var(--muted)]">{s.d}</p>
-                </div>
+          <p className="kicker">Templates</p>
+          <h2 className="font-display mt-3 max-w-xl text-balance text-3xl font-bold leading-tight sm:text-4xl">
+            One loop, twelve document types
+          </h2>
+          <ul className="mt-8 flex flex-wrap gap-2" aria-label="Document types">
+            {TEMPLATE_NAMES.map((t) => (
+              <li key={t} className="pill">
+                {t}
               </li>
             ))}
-          </ol>
+          </ul>
+          <p className="mt-5 max-w-[60ch] text-sm leading-relaxed text-[var(--muted)]">
+            Three are tuned for the MVP — RDD, PRD, Technical Design — and the rest
+            work today with their own section outlines and diagrams.
+          </p>
         </div>
       </section>
 
-      <section id="sample" className="mx-auto max-w-6xl scroll-mt-20 px-5 py-12 sm:px-6 md:py-16">
-        <div className="grid items-start gap-8 md:grid-cols-2">
-          <div>
-            <h2 className="font-display text-3xl font-bold sm:text-4xl">E-commerce platform RDD</h2>
+      <section id="how" className="mx-auto max-w-6xl scroll-mt-20 px-5 py-12 sm:px-6 md:py-16">
+        <p className="kicker">How it works</p>
+        <h2 className="font-display mt-3 text-balance text-3xl font-bold sm:text-4xl">Ninety seconds, three moves</h2>
+        <ol className="mt-8 grid gap-8 md:grid-cols-3">
+          {STEPS.map((s) => (
+            <li key={s.n} className="flex gap-4">
+              <span className="nchip h-fit shrink-0" aria-hidden>{s.n}</span>
+              <div className="min-w-0">
+                <h3 className="text-lg font-semibold">{s.t}</h3>
+                <p className="mt-1 text-sm leading-relaxed text-[var(--muted)]">{s.d}</p>
+              </div>
+            </li>
+          ))}
+        </ol>
+      </section>
+
+      <section id="sample" className="mx-auto max-w-6xl scroll-mt-20 px-5 pb-16 sm:px-6 md:pb-24">
+        <div className="grid items-start gap-8 md:grid-cols-2 md:gap-12">
+          <div className="min-w-0 md:sticky md:top-24">
+            <p className="kicker">Sample output</p>
+            <h2 className="font-display mt-3 text-balance text-3xl font-bold sm:text-4xl">E-commerce platform RDD</h2>
             <p className="mt-3 max-w-[52ch] leading-relaxed text-[var(--muted)]">
               Twenty-two pages, four diagrams, every section above 95% human.
               Drafted, de-roboted and exported before the coffee cooled.
@@ -187,7 +215,7 @@ export default function Landing() {
               Make one like it
             </Link>
           </div>
-          <div className="paper-card p-6 sm:p-8">
+          <div className="paper-card min-w-0 p-6 sm:p-8">
             <p className="text-sm font-semibold">Export report</p>
             <ul className="mt-4 divide-y divide-[var(--border)]">
               {[
@@ -197,7 +225,7 @@ export default function Landing() {
                 ["Risks", 99],
               ].map(([t, v]) => (
                 <li key={t as string} className="flex items-center justify-between gap-3 py-3">
-                  <span className="text-sm font-medium">{t}</span>
+                  <span className="min-w-0 truncate text-sm font-medium">{t}</span>
                   <ScoreRing value={v as number} size={40} />
                 </li>
               ))}

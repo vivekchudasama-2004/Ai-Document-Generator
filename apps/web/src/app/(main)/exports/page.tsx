@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { api } from "@/lib/api/client";
 import { PageHeader, ListShell } from "@/components/ui/PageShell";
@@ -48,22 +49,29 @@ export default function ExportsPage() {
           emptyTitle="Nothing exported yet"
           emptyHint="Finish a document in the studio, hit Export PDF, and it will land here."
           emptyAction={
-            <span className="text-sm text-[var(--muted)]">Your download shelf is ready.</span>
+            <Link href="/dashboard" className="btn-accent px-6 py-2.5 text-sm font-semibold">
+              Back to dashboard
+            </Link>
           }
         >
           {(loadedExports) => (
-            <ul className="divide-y divide-[var(--border)] rounded-2xl border border-[var(--border)] bg-surface">
+            <ul className="divide-y divide-[var(--border)] border-y border-[var(--border)]">
               {loadedExports.map((exportItem) => (
-                <li key={exportItem.id} className="flex items-center justify-between gap-3 px-5 py-4">
-                  <div>
-                    <p className="font-semibold uppercase">{exportItem.format}</p>
-                    <p className="text-sm text-[var(--muted)]">
-                      {exportItem.pages ? `${exportItem.pages} pages, ` : ""}
+                <li key={exportItem.id} className="flex items-center gap-4 py-4">
+                  <span className="nchip shrink-0 uppercase" aria-hidden>
+                    {exportItem.format}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate font-semibold">
+                      {exportItem.pages ? `${exportItem.pages} pages` : "Export"}
+                      <span className="font-normal text-[var(--muted)]"> · 150 words a page</span>
+                    </p>
+                    <p className="mt-0.5 text-sm text-[var(--muted)]">
                       {new Date(exportItem.created_at).toLocaleString()}
                     </p>
                   </div>
                   <a
-                    className="btn-ghost px-4 py-2 text-sm font-semibold"
+                    className="btn-ghost shrink-0 px-4 py-2 text-sm font-semibold"
                     href={exportItem.secure_url ?? `${API_BASE}/api/exports/${exportItem.id}/download`}
                     target="_blank"
                     rel="noreferrer"

@@ -6,6 +6,7 @@ import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { ApiError } from "@/lib/api/client";
 import { FieldError, Toast } from "@/components/ui/ui";
+import AuthShell from "@/components/layout/AuthShell";
 
 export default function SignupPage() {
   const { signup } = useAuth();
@@ -37,40 +38,36 @@ export default function SignupPage() {
   }
 
   return (
-    <main className="mx-auto max-w-md px-5 py-10 sm:px-6 sm:py-16">
-      <p className="font-display text-2xl font-bold">DocuForge</p>
-      <h1 className="font-display mt-6 text-4xl font-bold leading-tight sm:text-5xl">
-        Start your first doc
-      </h1>
-      <p className="mt-2 text-[var(--muted)]">Free to begin. Ninety seconds to a draft.</p>
-      <form onSubmit={submit} className="paper-card mt-6 space-y-4 p-5 sm:mt-8 sm:p-6" noValidate>
+    <AuthShell title="Start your first doc" lede="Free to begin. Ninety seconds from a one-line idea to a scored draft.">
+      <form onSubmit={submit} className="space-y-4" noValidate>
         <div>
-          <label className="text-sm font-semibold" htmlFor="name">Display name (optional)</label>
-          <input id="name" className="field mt-1" value={name} onChange={(e) => setName(e.target.value)} />
+          <label className="text-sm font-semibold" htmlFor="name">Display name <span className="font-normal text-[var(--muted)]">(optional)</span></label>
+          <input id="name" autoComplete="name" className="field mt-1.5" value={name}
+            onChange={(e) => setName(e.target.value)} placeholder="What should we call you?" />
         </div>
         <div>
           <label className="text-sm font-semibold" htmlFor="email">Email</label>
-          <input id="email" type="email" autoComplete="email" className="field mt-1"
+          <input id="email" type="email" autoComplete="email" className="field mt-1.5"
             value={email} onChange={(e) => setEmail(e.target.value)} />
           <FieldError message={errors.email} />
         </div>
         <div>
           <label className="text-sm font-semibold" htmlFor="password">Password</label>
-          <input id="password" type="password" autoComplete="new-password" className="field mt-1"
-            value={password} onChange={(e) => setPassword(e.target.value)} />
+          <input id="password" type="password" autoComplete="new-password" className="field mt-1.5"
+            value={password} onChange={(e) => setPassword(e.target.value)} placeholder="8+ characters" />
           <FieldError message={errors.password} />
         </div>
         {failed ? <Toast kind="error" message={failed} /> : null}
-        <button className="btn-accent w-full font-semibold" disabled={busy}>
+        <button className="btn-accent w-full py-3 font-semibold" disabled={busy}>
           {busy ? "Creating…" : "Create account"}
         </button>
         <div className="divider" aria-hidden>
           <span>have an account</span>
         </div>
-        <Link href="/login" className="btn-ghost block w-full py-2.5 text-center text-sm font-semibold">
+        <Link href="/login" className="btn-ghost block w-full py-3 text-center text-sm font-semibold">
           Log in
         </Link>
       </form>
-    </main>
+    </AuthShell>
   );
 }

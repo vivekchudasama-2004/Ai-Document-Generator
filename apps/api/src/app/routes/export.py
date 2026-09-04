@@ -84,15 +84,21 @@ def export_docx(body: dict, user=Depends(get_current_user), db: Session = Depend
 
 
 @router.get("/exports")
-def list_exports(limit: int = 20, offset: int = 0,
+def list_exports(limit: int = 20, offset: int = 0, cursor: str | None = None,
                  user=Depends(get_current_user), db: Session = Depends(get_db)):
+    from app.core.pagination import apply_cursor
+
     query = db.query(Export).filter(Export.user_id == str(user.id))
     total = query.count()
-    items = query.order_by(Export.created_at.desc()).offset(offset).limit(min(limit, 100)).all()
+    if cursor or offset == 0:
+        items, next_cursor = apply_cursor(query, Export, cursor, min(limit, 100))
+    else:
+        items = query.order_by(Export.created_at.desc()).offset(offset).limit(min(limit, 100)).all()
+        next_cursor = None
     return {"items": [
         {"id": e.id, "format": e.format, "secure_url": e.secure_url,
          "pages": e.pages, "created_at": e.created_at} for e in items
-    ], "total": total}
+    ], "total": total, "next_cursor": next_cursor}
 
 
 @router.get("/exports/{export_id}")

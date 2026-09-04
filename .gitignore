@@ -49,6 +49,11 @@ data/
 *.db
 *.sqlite3
 
+# skills (machine-local installs — restore via skills-lock.json, never commit)
+.agents/
+.claude/
+agent/
+
 # OS / editor
 .DS_Store
 Thumbs.db

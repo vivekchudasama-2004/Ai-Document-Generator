@@ -22,3 +22,5 @@ textstat==0.7.6
 tiktoken==0.8.0
 # Tests
 pytest==9.1.1
+# Migrations (TiDB; Vercel runs `alembic upgrade head` via migrate worker)
+alembic==1.19.1

@@ -12,13 +12,19 @@ def create(db: Session, *, user_id: str, title: str, idea: str | None, slug: str
 
 
 def list_for_user(
-    db: Session, *, user_id: str, q: str = "", limit: int = 20, offset: int = 0
-) -> tuple[list[Project], int]:
+    db: Session, *, user_id: str, q: str = "", limit: int = 20, offset: int = 0,
+    cursor: str | None = None,
+) -> tuple[list[Project], int, str | None]:
+    from app.core.pagination import apply_cursor
+
     query = db.query(Project).filter(Project.user_id == user_id)
     if q:
         query = query.filter(Project.title.ilike(f"%{q}%"))
     total = query.count()
-    return query.order_by(Project.updated_at.desc()).offset(offset).limit(limit).all(), total
+    if cursor or offset == 0:
+        items, next_cursor = apply_cursor(query, Project, cursor, limit)
+        return items, total, next_cursor
+    return query.order_by(Project.updated_at.desc()).offset(offset).limit(limit).all(), total, None
 
 
 def get_owned(db: Session, *, user_id: str, project_id: str) -> Project | None:

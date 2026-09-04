@@ -96,6 +96,8 @@ CREATE TABLE sections (
 	human_score NUMERIC(5, 2), 
 	iteration INTEGER NOT NULL, 
 	mermaid_svg TEXT, 
+	embedding_json TEXT, 
+	embedding_model VARCHAR(128), 
 	PRIMARY KEY (id), 
 	FOREIGN KEY(document_id) REFERENCES documents (id) ON DELETE CASCADE
 );
