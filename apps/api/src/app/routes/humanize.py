@@ -1,9 +1,10 @@
 import difflib
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from sqlalchemy.orm import Session
 
 from app.core import error_codes as CODES
 from app.core.errors import fail
+from app.core.rate_limit import limiter
 
 from app.core.security import get_current_user
 from app.db.client import get_db
@@ -17,7 +18,8 @@ router = APIRouter(tags=["humanize"])
 
 
 @router.post("/humanize")
-async def humanize(body: HumanizeIn, user=Depends(get_current_user), db: Session = Depends(get_db)):
+@limiter.limit("20/minute")
+async def humanize(body: HumanizeIn, request: Request, user=Depends(get_current_user), db: Session = Depends(get_db)):
     row = section_repo.get_owned(db, user_id=str(user.id), section_id=str(body.section_id))
     if not row:
         fail(404, CODES.SECTION_NOT_FOUND)
@@ -25,6 +27,7 @@ async def humanize(body: HumanizeIn, user=Depends(get_current_user), db: Session
         row.content_humanized_md or row.content_md, strength=body.strength,
         model_override=body.humanize_model, max_iterations=body.max_iterations,
         extra_allowed=tuple(user_model_repo.enabled_ids(db, str(user.id))),
+        db=db, user_id=str(user.id),
     )
     row.content_humanized_md = result["new_content"]
     row.word_count = count_words(result["new_content"])
@@ -37,8 +40,9 @@ async def humanize(body: HumanizeIn, user=Depends(get_current_user), db: Session
 
 
 @router.post("/humanize/batch")
+@limiter.limit("5/minute")
 async def humanize_batch(
-    body: HumanizeBatchIn, user=Depends(get_current_user), db: Session = Depends(get_db)
+    body: HumanizeBatchIn, request: Request, user=Depends(get_current_user), db: Session = Depends(get_db)
 ):
     doc = document_repo.get_owned(db, user_id=str(user.id), document_id=str(body.document_id))
     if not doc:
@@ -53,6 +57,7 @@ async def humanize_batch(
             row.content_humanized_md or row.content_md, strength=body.strength,
             model_override=body.humanize_model,
             extra_allowed=tuple(user_model_repo.enabled_ids(db, str(user.id))),
+            db=db, user_id=str(user.id),
         )
         row.content_humanized_md = result["new_content"]
         row.word_count = count_words(result["new_content"])

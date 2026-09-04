@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { ScoreRing, ThemeToggle } from "@/components/ui/ui";
+import { useAuth } from "@/contexts/AuthContext";
 
 const FEATURES = [
   {
@@ -38,6 +39,7 @@ const TEMPLATE_NAMES = [
 ];
 
 export default function Landing() {
+  const { user } = useAuth();
   return (
     <main>
       <script
@@ -66,12 +68,20 @@ export default function Landing() {
           </nav>
           <nav className="flex items-center gap-2 sm:gap-3" aria-label="Account">
             <ThemeToggle />
-            <Link href="/login" className="nav-underline hidden px-2 py-2 text-sm font-semibold sm:block">
-              Log in
-            </Link>
-            <Link href="/signup" className="btn-accent px-4 py-2 text-sm font-semibold sm:px-5">
-              Start writing
-            </Link>
+            {user ? (
+              <Link href="/dashboard" className="btn-accent px-4 py-2 text-sm font-semibold sm:px-5">
+                Open dashboard
+              </Link>
+            ) : (
+              <>
+                <Link href="/login" className="nav-underline hidden px-2 py-2 text-sm font-semibold sm:block">
+                  Log in
+                </Link>
+                <Link href="/signup" className="btn-accent px-4 py-2 text-sm font-semibold sm:px-5">
+                  Start writing
+                </Link>
+              </>
+            )}
           </nav>
         </div>
       </header>
@@ -83,34 +93,22 @@ export default function Landing() {
             Idea in. Human-feeling document out.
           </h1>
           <p className="mt-5 max-w-xl text-pretty text-base leading-relaxed text-[var(--muted)] sm:text-lg">
-            Client-ready RDDs, PRDs and design docs — with diagrams and
-            150-words-a-page typesetting, rewritten until they read human.
+            Client-ready RDDs, PRDs, and design docs with diagrams, rewritten until they read human.
           </p>
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-            <Link href="/signup" className="btn-accent cta justify-center px-7 py-3.5 font-semibold">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                <path d="M12 20h9" />
-                <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
-              </svg>
-              Draft your first doc
+            <Link href="/signup" className="btn-accent justify-center py-3 pl-4 pr-7 font-semibold">
+              <span className="flex h-10 w-10 items-center justify-center rounded-full bg-white/20" aria-hidden>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 20h9" />
+                  <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
+                </svg>
+              </span>
+              Start writing
             </Link>
-            <Link href="/login" className="btn-ghost justify-center px-7 py-3.5 font-semibold">
-              Open the studio
+            <Link href={user ? "/dashboard" : "/login"} className="btn-ghost justify-center px-7 py-3.5 font-semibold">
+              {user ? "Open dashboard" : "Log in"}
             </Link>
           </div>
-          <dl className="mt-10 grid max-w-md grid-cols-3 gap-3 border-t border-[var(--border)] pt-6">
-            {[
-              ["90s", "idea to draft"],
-              ["95%+", "human target"],
-              ["150", "words a page"],
-            ].map(([v, l]) => (
-              <div key={l} className="min-w-0">
-                <dt className="sr-only">{l}</dt>
-                <dd className="figure text-[1.6rem] sm:text-4xl">{v}</dd>
-                <dd className="mt-1.5 text-xs text-[var(--muted)] sm:text-sm">{l}</dd>
-              </div>
-            ))}
-          </dl>
         </div>
 
         {/* The one bold moment: the loop as an inverse panel with oversized numerals. */}
@@ -122,19 +120,25 @@ export default function Landing() {
           <p className="font-display mt-2 text-6xl font-bold leading-none sm:text-7xl" aria-hidden>
             72<span className="opacity-40">→</span>98
           </p>
-          <div className="mt-5 flex min-w-0 items-center gap-4">
-            <ScoreRing value={72} size={56} />
-            <div className="min-w-0 flex-1 space-y-2" aria-hidden>
-              {[["Rhythm", "92%"], ["Voice", "88%"], ["Diction", "95%"]].map(([label, width]) => (
-                <div key={label} className="flex min-w-0 items-center gap-3">
-                  <span className="w-16 shrink-0 font-mono text-[11px] opacity-70">{label}</span>
-                  <div className="meter min-w-0 flex-1">
-                    <span style={{ width }} />
-                  </div>
-                </div>
-              ))}
+          <div className="mt-6 flex items-start justify-between gap-4">
+            <div>
+              <ScoreRing value={72} size={60} />
+              <p className="mt-2 font-mono text-[11px] opacity-60">First draft</p>
             </div>
-            <ScoreRing value={98} size={56} />
+            <div className="text-right">
+              <ScoreRing value={98} size={60} />
+              <p className="mt-2 font-mono text-[11px] opacity-60">After rewrite</p>
+            </div>
+          </div>
+          <div className="mt-5 space-y-2.5" aria-hidden>
+            {[["Rhythm", "92%"], ["Voice", "88%"], ["Diction", "95%"]].map(([label, width]) => (
+              <div key={label} className="flex min-w-0 items-center gap-3">
+                <span className="w-16 shrink-0 font-mono text-[11px] opacity-70">{label}</span>
+                <div className="meter min-w-0 flex-1">
+                  <span style={{ width }} />
+                </div>
+              </div>
+            ))}
           </div>
           <p className="mt-4 text-sm opacity-70">
             Draft, score, rewrite. Only improvements are kept, each with a diff.
@@ -142,7 +146,23 @@ export default function Landing() {
         </figure>
       </section>
 
-      <section id="features" className="mx-auto max-w-6xl scroll-mt-20 px-5 py-12 sm:px-6 md:py-16">
+      <section aria-label="Proof" className="border-b border-[var(--border)]">
+        <dl className="mx-auto grid max-w-6xl grid-cols-3 gap-3 px-5 py-8 sm:gap-6 sm:px-6">
+          {[
+            ["90s", "idea to draft"],
+            ["95%+", "human target"],
+            ["150", "words a page"],
+          ].map(([v, l]) => (
+            <div key={l} className="min-w-0">
+              <dt className="sr-only">{l}</dt>
+              <dd className="figure text-4xl sm:text-5xl">{v}</dd>
+              <dd className="mt-1.5 text-xs text-[var(--muted)] sm:text-sm">{l}</dd>
+            </div>
+          ))}
+        </dl>
+      </section>
+
+      <section id="features" className="mx-auto max-w-6xl scroll-mt-20 px-5 py-16 sm:px-6 md:py-24">
         <p className="kicker">What you get</p>
         <h2 className="font-display mt-3 max-w-xl text-balance text-3xl font-bold leading-tight sm:text-4xl">
           Everything a client-ready doc needs
@@ -161,14 +181,13 @@ export default function Landing() {
         <div className="mt-6 flex flex-col gap-3 rounded-2xl bg-[var(--accent-container)] p-6 text-[var(--on-accent-container)] sm:flex-row sm:items-center sm:justify-between sm:p-8">
           <p className="font-display text-balance text-2xl font-bold">Twelve templates. Three minutes.</p>
           <Link href="/signup" className="btn-accent shrink-0 px-6 py-3 text-center font-semibold">
-            Start free
+            Start writing
           </Link>
         </div>
       </section>
 
       <section id="templates" className="scroll-mt-20 border-y border-[var(--border)] bg-[var(--surface)]">
-        <div className="mx-auto max-w-6xl px-5 py-12 sm:px-6 md:py-16">
-          <p className="kicker">Templates</p>
+        <div className="mx-auto max-w-6xl px-5 py-16 sm:px-6 md:py-24">
           <h2 className="font-display mt-3 max-w-xl text-balance text-3xl font-bold leading-tight sm:text-4xl">
             One loop, twelve document types
           </h2>
@@ -186,8 +205,7 @@ export default function Landing() {
         </div>
       </section>
 
-      <section id="how" className="mx-auto max-w-6xl scroll-mt-20 px-5 py-12 sm:px-6 md:py-16">
-        <p className="kicker">How it works</p>
+      <section id="how" className="mx-auto max-w-6xl scroll-mt-20 px-5 py-16 sm:px-6 md:py-24">
         <h2 className="font-display mt-3 text-balance text-3xl font-bold sm:text-4xl">Ninety seconds, three moves</h2>
         <ol className="mt-8 grid gap-8 md:grid-cols-3">
           {STEPS.map((s) => (
@@ -202,17 +220,16 @@ export default function Landing() {
         </ol>
       </section>
 
-      <section id="sample" className="mx-auto max-w-6xl scroll-mt-20 px-5 pb-16 sm:px-6 md:pb-24">
+      <section id="sample" className="mx-auto max-w-6xl scroll-mt-20 px-5 pb-20 sm:px-6 md:pb-28">
         <div className="grid items-start gap-8 md:grid-cols-2 md:gap-12">
           <div className="min-w-0 md:sticky md:top-24">
-            <p className="kicker">Sample output</p>
             <h2 className="font-display mt-3 text-balance text-3xl font-bold sm:text-4xl">E-commerce platform RDD</h2>
             <p className="mt-3 max-w-[52ch] leading-relaxed text-[var(--muted)]">
               Twenty-two pages, four diagrams, every section above 95% human.
               Drafted, de-roboted and exported before the coffee cooled.
             </p>
             <Link href="/signup" className="btn-accent mt-6 inline-flex px-6 py-3 font-semibold">
-              Make one like it
+              Start writing
             </Link>
           </div>
           <div className="paper-card min-w-0 p-6 sm:p-8">
@@ -240,8 +257,14 @@ export default function Landing() {
           <p className="font-display text-lg font-bold">DocuForge</p>
           <p className="text-sm text-[var(--muted)]">Open stack, your models, your words.</p>
           <nav className="flex gap-5 text-sm font-medium" aria-label="Footer">
-            <Link href="/login" className="nav-underline">Log in</Link>
-            <Link href="/signup" className="nav-underline">Sign up</Link>
+            {user ? (
+              <Link href="/dashboard" className="nav-underline">Dashboard</Link>
+            ) : (
+              <>
+                <Link href="/login" className="nav-underline">Log in</Link>
+                <Link href="/signup" className="nav-underline">Start writing</Link>
+              </>
+            )}
           </nav>
         </div>
       </footer>

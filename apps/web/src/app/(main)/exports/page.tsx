@@ -37,6 +37,7 @@ export default function ExportsPage() {
   return (
     <div>
       <PageHeader
+        kicker="Workspace"
         title="Exports"
         description="Your download shelf — every PDF and DOCX lands here."
         actions={<RefreshButton onRefresh={loadExports} />}

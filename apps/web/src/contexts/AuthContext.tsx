@@ -6,8 +6,6 @@ import { api, setToken } from "@/lib/api/client";
 
 export type User = { id: string; email: string; display_name: string | null; role: string };
 
-const PUBLIC_PAGES = ["/", "/login", "/signup", "/forgot-password", "/reset-password"];
-
 type AuthCtx = {
   user: User | null;
   loading: boolean;
@@ -25,12 +23,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
   useEffect(() => {
-    // Public pages never need a session: don't probe /me, don't bounce to /login.
-    if (PUBLIC_PAGES.some((page) => pathname === page || pathname.startsWith(`${page}/`))) {
-      setUser(null);
-      setLoading(false);
-      return;
-    }
+    // Every page probes the session (public ones too, without redirect): the
+    // landing header adapts for signed-in users, and the 7-day refresh cookie
+    // keeps them signed in across reloads until they log out.
     api<User>("/api/auth/me")
       .then((u) => setUser(u))
       .catch(() => setUser(null))

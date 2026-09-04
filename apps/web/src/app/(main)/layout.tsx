@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import ErrorBoundary from "@/components/ui/ErrorBoundary";
-import Sidebar from "@/components/layout/Sidebar";
+import Sidebar, { MobileBar } from "@/components/layout/Sidebar";
 
 export default function MainLayout({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -20,17 +20,20 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
   if (!user) return null;
 
   return (
-    <div className="mx-auto flex min-h-screen max-w-6xl gap-6 px-6 py-6">
-      <Sidebar />
-      <main className="min-w-0 flex-1">
-        {/* Page-level isolation: a crashing page shows a fallback, never a blank screen. */}
-        <ErrorBoundary key={path} label="page">
-          {/* Fresh route = gentle entrance (disabled under reduced motion). */}
-          <div key={path} className="page-enter">
-            {children}
-          </div>
-        </ErrorBoundary>
-      </main>
-    </div>
+    <>
+      <MobileBar />
+      <div className="mx-auto flex min-h-screen max-w-6xl gap-6 px-4 py-6 sm:px-6">
+        <Sidebar />
+        <main className="min-w-0 flex-1">
+          {/* Page-level isolation: a crashing page shows a fallback, never a blank screen. */}
+          <ErrorBoundary key={path} label="page">
+            {/* Fresh route = gentle entrance (disabled under reduced motion). */}
+            <div key={path} className="page-enter">
+              {children}
+            </div>
+          </ErrorBoundary>
+        </main>
+      </div>
+    </>
   );
 }

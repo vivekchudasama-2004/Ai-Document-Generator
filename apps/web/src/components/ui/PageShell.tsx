@@ -3,25 +3,34 @@ import { EmptyState, SectionSkeleton, Toast } from "@/components/ui/ui";
 import RefreshButton from "@/components/ui/RefreshButton";
 
 /**
- * Standard page header: title, optional description, actions row.
+ * Standard page header: kicker, display title, lede, actions row.
  * Keeps every management page visually consistent.
  */
 export function PageHeader({
+  kicker,
   title,
   description,
   actions,
 }: {
+  kicker?: string;
   title: string;
   description?: string;
   actions?: React.ReactNode;
 }) {
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3">
-      <div>
-        <h1 className="font-display text-3xl font-bold">{title}</h1>
-        {description ? <p className="mt-1 text-[var(--muted)]">{description}</p> : null}
+    <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-4">
+      <div className="min-w-0">
+        {kicker ? <p className="kicker">{kicker}</p> : null}
+        <h1 className={`font-display text-balance font-bold leading-[1.02] ${kicker ? "mt-2" : ""} text-4xl sm:text-5xl`}>
+          {title}
+        </h1>
+        {description ? (
+          <p className="mt-3 max-w-[56ch] text-pretty text-base leading-relaxed text-[var(--muted)] sm:text-lg">
+            {description}
+          </p>
+        ) : null}
       </div>
-      {actions ? <div className="flex items-center gap-2">{actions}</div> : null}
+      {actions ? <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div> : null}
     </div>
   );
 }
@@ -59,7 +68,7 @@ export function ListShell<T>({
   }
   if (!items) {
     return (
-      <div className="grid gap-4 md:grid-cols-3" aria-busy="true" aria-label="Loading">
+      <div className="grid gap-4" aria-busy="true" aria-label="Loading">
         {Array.from({ length: skeletonCount }).map((_, index) => (
           <SectionSkeleton key={index} />
         ))}

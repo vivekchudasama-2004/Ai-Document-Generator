@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api/client";
 import { SectionSkeleton, Toast } from "@/components/ui/ui";
-import ModelManager from "@/components/features/ModelManager";
+import ManageModelsModal from "@/components/features/ModelModal";
 
 type ModelsPayload = {
   defaults: Record<string, string>;
@@ -89,8 +89,11 @@ export default function SettingsPage() {
       </ul>
 
       <h2 id="models" className="font-display mt-10 scroll-mt-20 text-xl font-bold">Manage models</h2>
-      <div className="paper-card mt-3 p-5 sm:p-6">
-        <ModelManager />
+      <div className="paper-card mt-3 flex flex-wrap items-center justify-between gap-3 p-5 sm:p-6">
+        <p className="max-w-[44ch] text-sm leading-relaxed text-[var(--muted)]">
+          Toggle which of your key&apos;s models appear in the pickers. Opens as a dialog, right where you are.
+        </p>
+        <ManageModelsModal />
       </div>
 
       <p className="mt-8 border-t border-[var(--border)] pt-4 text-sm text-[var(--muted)]">

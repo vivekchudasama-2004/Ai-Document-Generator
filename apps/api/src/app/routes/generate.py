@@ -1,11 +1,12 @@
 import json
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
 from app.core import error_codes as CODES
 from app.core.errors import fail
+from app.core.rate_limit import limiter
 
 from app.core.security import get_current_user
 from app.db.client import get_db
@@ -49,12 +50,14 @@ def _persist(db: Session, *, user_id: str, body: GenerateIn, sections: list[dict
 
 
 @router.post("/generate", response_model=GenerateOut)
-async def generate(body: GenerateIn, user=Depends(get_current_user), db: Session = Depends(get_db)):
+@limiter.limit("10/minute")
+async def generate(body: GenerateIn, request: Request, user=Depends(get_current_user), db: Session = Depends(get_db)):
     try:
         model_used, sections = await generator.generate_sections(
             title=body.title, idea=body.idea, doc_type=body.doc_type,
             tone=body.tone, depth=body.depth, model_override=body.generation_model,
             extra_allowed=tuple(user_model_repo.enabled_ids(db, str(user.id))),
+            db=db, user_id=str(user.id),
         )
     except ModelNotAllowed as exc:
         fail(422, CODES.MODEL_NOT_ALLOWED, model=exc.model)
@@ -69,13 +72,15 @@ async def generate(body: GenerateIn, user=Depends(get_current_user), db: Session
 
 
 @router.post("/generate/stream")
-async def generate_stream(body: GenerateIn, user=Depends(get_current_user),
+@limiter.limit("10/minute")
+async def generate_stream(body: GenerateIn, request: Request, user=Depends(get_current_user),
                           db: Session = Depends(get_db)):
     try:
         model_used, sections = await generator.generate_sections(
             title=body.title, idea=body.idea, doc_type=body.doc_type,
             tone=body.tone, depth=body.depth, model_override=body.generation_model,
             extra_allowed=tuple(user_model_repo.enabled_ids(db, str(user.id))),
+            db=db, user_id=str(user.id),
         )
     except ModelNotAllowed as exc:
         fail(422, CODES.MODEL_NOT_ALLOWED, model=exc.model)
@@ -102,8 +107,9 @@ async def generate_stream(body: GenerateIn, user=Depends(get_current_user),
 
 
 @router.post("/generate/regenerate-section")
+@limiter.limit("10/minute")
 async def regenerate_section(
-    body: RegenerateSectionIn, user=Depends(get_current_user), db: Session = Depends(get_db)
+    body: RegenerateSectionIn, request: Request, user=Depends(get_current_user), db: Session = Depends(get_db)
 ):
     from app.services.detector import count_words
 
@@ -115,6 +121,7 @@ async def regenerate_section(
         doc_type=doc.type, tone=doc.tone, depth=doc.depth,
         model_override=body.generation_model,
         extra_allowed=tuple(user_model_repo.enabled_ids(db, str(user.id))),
+        db=db, user_id=str(user.id),
     )
     if not sections:
         fail(502, CODES.MODEL_EMPTY_RESPONSE)

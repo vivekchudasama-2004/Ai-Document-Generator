@@ -31,6 +31,7 @@ function Wizard() {
   const [errors, setErrors] = useState<{ title?: string; idea?: string }>({});
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState("");
+  const [failedCode, setFailedCode] = useState<string | undefined>(undefined);
   const [progress, setProgress] = useState<string[]>([]);
 
   async function submit(e: React.FormEvent) {
@@ -42,6 +43,7 @@ function Wizard() {
     if (Object.keys(errs).length) return;
     setBusy(true);
     setFailed("");
+    setFailedCode(undefined);
     setProgress([]);
     let docId = "";
     try {
@@ -62,6 +64,7 @@ function Wizard() {
       router.push(`/studio/${docId}`);
     } catch (err) {
       setFailed(err instanceof ApiError || err instanceof Error ? err.message : "Generation failed.");
+      setFailedCode(err instanceof ApiError ? err.code : undefined);
       setBusy(false);
     }
   }
@@ -143,6 +146,15 @@ function Wizard() {
       </section>
 
       {failed ? <Toast kind="error" message={failed} /> : null}
+      {failedCode === "MODEL_UNAVAILABLE" ? (
+        <p className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 text-sm leading-relaxed text-[var(--muted)]" role="note">
+          The default writer is overloaded right now — your key itself works
+          (the model list loaded). Pick a specific writer above
+          (the 70b usually answers when 405b doesn&apos;t), or set{" "}
+          <span className="font-mono text-xs">NIM_MOCK=true</span> to test the
+          full flow offline.
+        </p>
+      ) : null}
       {busy ? (
         <div className="space-y-2" aria-live="polite">
           <SectionSkeleton />

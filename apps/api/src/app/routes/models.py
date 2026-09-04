@@ -1,13 +1,16 @@
 """Model management: live NVIDIA availability, per-user enabled set,
-auto-mode preview. The picker never trusts a hardcoded list alone."""
-from fastapi import APIRouter, Depends, Query
+auto-mode preview, and BYOK provider keys. The picker never trusts a
+hardcoded list alone; plaintext keys never leave the request."""
+from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy.orm import Session
 
 from app.core import error_codes as CODES
 from app.core.errors import fail
+from app.core.rate_limit import limiter
 from app.core.security import get_current_user
 from app.db.client import get_db
 from app.repositories import user_model_repo
+from app.services import keys as byok
 from app.services.llm.models import auto_select_model, live_model_ids
 
 router = APIRouter(tags=["models"])
@@ -24,7 +27,14 @@ def _describe(model_id: str) -> dict:
     if model_id in known:
         label, role, cost = known[model_id]
     else:
-        label = model_id.split("/")[-1].replace("-", " ").title()
+        provider, _rest = byok.split_model(model_id)
+        short = model_id.split("/")[-1].replace("-", " ").title()
+        if provider in byok.PROVIDER_URLS:
+            label = f"{short} ({provider})"
+        elif provider == "custom":
+            label = f"{short} (custom)"
+        else:
+            label = short
         role, cost = "both", "medium"
     return {"id": model_id, "label": label, "role": role, "cost": cost}
 
@@ -51,6 +61,17 @@ def models_set_enabled(body: dict, current_user=Depends(get_current_user),
     model_id = (body.get("model_id") or "").strip()
     if not model_id or len(model_id) > 128:
         fail(422, CODES.MODEL_NOT_ALLOWED, model=model_id or "empty")
+    provider, _rest = byok.split_model(model_id)
+    if provider in (*byok.PROVIDER_URLS, "custom"):
+        # Provider ids are admissible only with the user's own key — even when
+        # the live list is unknown (mock/offline), so a saved model never dangles.
+        if not byok.key_available(db, user_id=str(current_user.id), model_id=model_id):
+            fail(422, CODES.MODEL_NOT_ALLOWED, model=model_id)
+        row = user_model_repo.set_enabled(
+            db, user_id=str(current_user.id), model_id=model_id,
+            enabled=bool(body.get("enabled", True)),
+        )
+        return {"model_id": model_id, "enabled": row is not None}
     live_ids = live_model_ids()
     if live_ids is not None and model_id not in live_ids:
         fail(422, CODES.MODEL_NOT_ALLOWED, model=model_id)
@@ -59,6 +80,41 @@ def models_set_enabled(body: dict, current_user=Depends(get_current_user),
         enabled=bool(body.get("enabled", True)),
     )
     return {"model_id": model_id, "enabled": row is not None}
+
+
+@router.get("/models/keys")
+def models_keys(current_user=Depends(get_current_user),
+                db: Session = Depends(get_db)):
+    """Saved provider keys — masked, never plaintext."""
+    return {"items": byok.list_masked(db, user_id=str(current_user.id))}
+
+
+@router.post("/models/keys", status_code=201)
+@limiter.limit("10/minute")
+def models_add_key(body: dict, request: Request,
+                   current_user=Depends(get_current_user),
+                   db: Session = Depends(get_db)):
+    """Save (or rotate) one provider key. Stored Fernet-encrypted; the
+    plaintext is never logged, persisted, or returned."""
+    try:
+        row = byok.add_key(
+            db, user_id=str(current_user.id),
+            provider=body.get("provider", ""), label=body.get("label", ""),
+            api_key=body.get("api_key", ""), base_url=body.get("base_url"),
+        )
+    except byok.KeyError as exc:
+        fail(422, CODES.BYOK_INVALID, detail=str(exc))
+    masked = byok.list_masked(db, user_id=str(current_user.id))
+    saved = next((k for k in masked if k["id"] == row.id), None)
+    return {"saved": saved}
+
+
+@router.delete("/models/keys/{key_id}")
+def models_delete_key(key_id: str, current_user=Depends(get_current_user),
+                      db: Session = Depends(get_db)):
+    if not byok.delete_key(db, user_id=str(current_user.id), key_id=key_id):
+        fail(404, CODES.BYOK_NOT_FOUND)
+    return {"deleted": key_id}
 
 
 @router.get("/models/auto-preview")

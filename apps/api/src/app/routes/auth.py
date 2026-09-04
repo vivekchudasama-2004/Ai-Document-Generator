@@ -28,6 +28,10 @@ def _cookie_kwargs() -> dict:
 def _pair_response(user, response: Response) -> TokenPair:
     pair = auth_service.issue_pair(user)
     response.set_cookie("access_token", pair["access_token"], max_age=3600, **_cookie_kwargs())
+    response.set_cookie(
+        "refresh_token", pair["refresh_token"],
+        max_age=7 * 86400, **_cookie_kwargs(),  # 7-day persistent session
+    )
     return TokenPair(**pair)
 
 
@@ -54,18 +58,26 @@ def login(body: LoginIn, request: Request, response: Response, db: Session = Dep
 
 
 @router.post("/auth/refresh")
-def refresh(body: RefreshIn, response: Response, db: Session = Depends(get_db)):
+def refresh(body: RefreshIn, request: Request, response: Response, db: Session = Depends(get_db)):
+    token = body.refresh_token or request.cookies.get("refresh_token", "")
+    if not token:
+        fail(401, CODES.AUTH_BAD_REFRESH)
     try:
-        pair = auth_service.refresh(db, body.refresh_token)
+        pair = auth_service.refresh(db, token)
     except ValueError:
         fail(401, CODES.AUTH_BAD_REFRESH)
     response.set_cookie("access_token", pair["access_token"], max_age=3600, **_cookie_kwargs())
+    response.set_cookie(
+        "refresh_token", pair["refresh_token"],
+        max_age=7 * 86400, **_cookie_kwargs(),
+    )
     return pair
 
 
 @router.post("/auth/logout")
 def logout(response: Response):
     response.delete_cookie("access_token", path="/")
+    response.delete_cookie("refresh_token", path="/")
     return {"logged_out": True}
 
 

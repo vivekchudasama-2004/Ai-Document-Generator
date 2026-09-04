@@ -34,26 +34,32 @@ class ModelUnavailable(RuntimeError):
     """NIM failed after retries / no key and no mock. Maps to 502."""
 
 
-async def _post(model: str, messages: list[dict], max_tokens: int) -> str:
+async def _post(model: str, messages: list[dict], max_tokens: int,
+                transport: dict | None = None) -> str:
+    """POST one chat completion. `transport` routes BYOK calls to the user's
+    provider ({base_url, api_key, model}); otherwise the server NVIDIA key."""
     settings = get_settings()
-    if not settings.NVIDIA_NIM_API_KEY and not settings.NIM_MOCK:
+    if transport is None and not settings.NVIDIA_NIM_API_KEY and not settings.NIM_MOCK:
         raise ModelUnavailable("NVIDIA_NIM_API_KEY missing (or set NIM_MOCK=true)")
+    base_url = transport["base_url"] if transport else BASE_URL
+    api_key = transport["api_key"] if transport else settings.NVIDIA_NIM_API_KEY
+    downstream = transport["model"] if transport else model
     last_exc: Exception | None = None
     async with httpx.AsyncClient(timeout=30.0) as client:
         for attempt in range(3):
             try:
                 resp = await client.post(
-                    f"{BASE_URL}/chat/completions",
-                    headers={"Authorization": f"Bearer {settings.NVIDIA_NIM_API_KEY}"},
+                    f"{base_url}/chat/completions",
+                    headers={"Authorization": f"Bearer {api_key}"},
                     json={
-                        "model": model,
+                        "model": downstream,
                         "messages": messages,
                         "temperature": 0.7,
                         "max_tokens": max_tokens,
                     },
                 )
                 if resp.status_code in (429, 500, 502, 503):
-                    last_exc = RuntimeError(f"NIM {resp.status_code}")
+                    last_exc = RuntimeError(f"LLM {resp.status_code}")
                     await asyncio.sleep(2**attempt)
                     continue
                 resp.raise_for_status()
@@ -61,7 +67,7 @@ async def _post(model: str, messages: list[dict], max_tokens: int) -> str:
             except (httpx.TimeoutException, httpx.ConnectError) as exc:
                 last_exc = exc
                 await asyncio.sleep(2**attempt)
-    raise ModelUnavailable(f"NIM failed after retries: {last_exc}")
+    raise ModelUnavailable(f"LLM failed after retries: {last_exc}")
 
 
 MOCK_DOC = """## Executive Summary
@@ -85,15 +91,25 @@ Key risks are scope creep and third-party downtime. Mitigations are feature flag
 
 
 async def chat_complete(
-    model: str, messages: list[dict], *, role: str = "generate"
+    model: str, messages: list[dict], *, role: str = "generate",
+    transport: dict | None = None,
 ) -> tuple[str, str]:
-    """Returns (model_used, text). Applies token budget + generate fallback chain."""
+    """Returns (model_used, text). Applies token budget + generate fallback chain.
+
+    BYOK (`transport` set): one routed attempt at the user's provider — no
+    NIM fallback chain, no live-list preflight. Explicit user keys bypass
+    NIM_MOCK so a saved key always means a real call.
+    """
     settings = get_settings()
     prompt_tokens = sum(count_tokens(m.get("content", "")) for m in messages)
     if prompt_tokens > budget_for(model) * 4:
         raise BudgetExceeded(
             f"Prompt ~{prompt_tokens} tokens exceeds budget for {model}", model=model
         )
+
+    if transport is not None:
+        text = await _post(model, messages, budget_for(model), transport)
+        return model, text
 
     if settings.NIM_MOCK or not settings.NVIDIA_NIM_API_KEY:
         title = messages[-1].get("content", "Document")[:60] if messages else "Document"

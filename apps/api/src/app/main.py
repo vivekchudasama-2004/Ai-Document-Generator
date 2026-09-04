@@ -68,6 +68,15 @@ async def security_headers(request: Request, call_next):
         "connect-src 'self'; frame-ancestors 'none'"
     )
     response.headers["X-Request-Id"] = request_id
+    response.headers["Permissions-Policy"] = (
+        "camera=(), microphone=(), geolocation=(), payment=(), usb=()"
+    )
+    # HSTS only when cookies are Secure (prod https) — never brick localhost.
+    from app.core.config import get_settings as _settings
+    if _settings().COOKIE_SECURE:
+        response.headers["Strict-Transport-Security"] = (
+            "max-age=31536000; includeSubDomains"
+        )
     logging.getLogger("docuforge").info("request %s %s id=%s status=%s",
                                         request.method, request.url.path,
                                         request_id, response.status_code)

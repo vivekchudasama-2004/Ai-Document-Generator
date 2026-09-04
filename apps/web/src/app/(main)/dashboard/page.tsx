@@ -52,6 +52,7 @@ export default function Dashboard() {
   return (
     <div>
       <PageHeader
+        kicker="Workspace"
         title={firstName ? `Good to see you, ${firstName}` : "Dashboard"}
         description="Everything you're writing, and where it stands."
         actions={

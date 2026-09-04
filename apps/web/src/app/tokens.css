@@ -1,28 +1,32 @@
-/* DocuForge M3 theme — the ONLY place for raw values (token lint).
-   Material 3 Expressive reference: tonal surfaces (no shadows), stadium
-   controls, 16px containers, state-layer hovers. Motion budget: color fades,
-   press scale, open/confirm/expand + one load entrance. */
+/* DocuForge visual system v2 — true Material 3 Expressive, built from scratch.
+   Tonal surfaces (filled, not outlined), stadium controls, 22px containers,
+   oversized grotesk display, mono data labels. One electric signal color,
+   used only for the bold moment. Motion budget: color fades, press scale,
+   open/confirm/expand + one load entrance. */
 :root {
-  --paper: #f6f4f1;
-  --surface: #ffffff;
-  --surface-variant: #e4e7e5;
-  --ink: #191c1c;
-  --accent: #00696b;
-  --accent-ink: #00696b;
+  --paper: #ecefec;
+  --surface: #fafbf9;
+  --surface-variant: #dde2d9;
+  --surface-warm: #e4e8e1;
+  --ink: #141816;
+  --ink-soft: #2b3230;
+  --accent: #0a5a50;
+  --accent-deep: #073f38;
+  --accent-ink: #0a5a50;
   --on-accent: #ffffff;
-  --accent-container: #6ff7e9;
-  --on-accent-container: #00201c;
-  --muted: #3f4948;
-  --border: #d4dcd9;
-  --outline: #6f7978;
-  --good: #146c2e;
-  --warn: #7a4a00;
-  --bad: #ba1a1a;
-  --radius: 16px;
+  --accent-container: #c9ecd9;
+  --on-accent-container: #06231b;
+  --signal: #d7f24b;
+  --on-signal: #141806;
+  --muted: #4c5652;
+  --border: #d0d6cf;
+  --outline: #6f7772;
+  --good: #1d7a36;
+  --warn: #8a5400;
+  --bad: #bd2727;
+  --radius: 22px;
   --radius-control: 999px;
-  --shadow-card: none;
-  --shadow-paper: none;
-  --motion: 150ms ease-out;
+  --motion: 160ms ease-out;
   color-scheme: light;
 }
 
@@ -46,7 +50,35 @@ body {
 .font-display {
   font-family: var(--font-display), "Space Grotesk", Roboto, system-ui, sans-serif;
   font-weight: 700;
+  letter-spacing: -0.035em;
+}
+
+/* Fluid display scale — one scale everywhere, no arbitrary sizes. */
+.h-hero {
+  font-family: var(--font-display), "Space Grotesk", Roboto, system-ui, sans-serif;
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  line-height: 0.98;
+  font-size: clamp(3rem, 9vw, 6.5rem);
+  text-wrap: balance;
+}
+
+.h-page {
+  font-family: var(--font-display), "Space Grotesk", Roboto, system-ui, sans-serif;
+  font-weight: 700;
+  letter-spacing: -0.035em;
+  line-height: 1.02;
+  font-size: clamp(2.25rem, 5vw, 3.5rem);
+  text-wrap: balance;
+}
+
+.h-section {
+  font-family: var(--font-display), "Space Grotesk", Roboto, system-ui, sans-serif;
+  font-weight: 700;
   letter-spacing: -0.03em;
+  line-height: 1.05;
+  font-size: clamp(1.5rem, 3vw, 2.25rem);
+  text-wrap: balance;
 }
 
 code,
@@ -75,18 +107,24 @@ body,
   border-radius: var(--radius);
 }
 
-/* M3 filled button. Verb-first labels, centered text. */
+/* M3 filled button: tall, bold, stadium. Verb-first labels, centered text. */
 .btn-accent {
   background: var(--accent);
   color: var(--on-accent);
   border-radius: var(--radius-control);
-  min-height: 44px;
+  min-height: 52px;
+  font-weight: 700;
   text-align: center;
-  transition: filter var(--motion), transform var(--motion);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  transition: background var(--motion), transform var(--motion), filter var(--motion);
 }
 
 .btn-accent:hover {
-  filter: brightness(1.08);
+  background: var(--accent-deep);
+  transform: translateY(-1px);
 }
 
 .btn-accent:active {
@@ -98,45 +136,93 @@ body,
   cursor: not-allowed;
 }
 
-/* M3 outlined button. */
+/* M3 tonal button: for secondary actions on tinted ground. */
+.btn-tonal {
+  background: var(--accent-container);
+  color: var(--on-accent-container);
+  border-radius: var(--radius-control);
+  min-height: 48px;
+  font-weight: 700;
+  text-align: center;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: filter var(--motion), transform var(--motion);
+}
+
+.btn-tonal:hover {
+  filter: brightness(0.96);
+}
+
+.btn-tonal:active {
+  transform: scale(0.98);
+}
+
+/* Outlined button: tertiary only. */
 .btn-ghost {
-  border: 1px solid var(--outline);
+  border: 1.5px solid var(--outline);
   color: var(--ink);
   border-radius: var(--radius-control);
-  min-height: 44px;
+  min-height: 48px;
+  font-weight: 600;
   text-align: center;
-  transition: background var(--motion);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: background var(--motion), border-color var(--motion);
 }
 
 .btn-ghost:hover {
   background: var(--surface-variant);
+  border-color: var(--ink);
 }
 
 .btn-ghost:active {
   transform: scale(0.98);
 }
 
-/* M3 outlined field. Full-width, truncates long option text. */
+/* M3 filled field: tonal ground, no outline, indicator on focus. */
 .field {
-  border: 1px solid var(--outline);
-  border-radius: 12px;
-  min-height: 44px;
-  padding: 0 14px;
+  border: 1px solid transparent;
+  border-bottom: 2px solid transparent;
+  border-radius: 16px 16px 6px 6px;
+  min-height: 54px;
+  padding: 0 16px;
   width: 100%;
   max-width: 100%;
-  background: var(--surface);
+  background: var(--surface-variant);
   color: var(--ink);
+  font-size: 16px;
   text-overflow: ellipsis;
+  transition: border-color var(--motion), background var(--motion);
+}
+
+textarea.field {
+  padding-top: 14px;
+  padding-bottom: 14px;
+  line-height: 1.55;
 }
 
 select.field {
-  padding-right: 32px;
+  padding-right: 36px;
+}
+
+.field::placeholder {
+  color: var(--muted);
+  opacity: 0.8;
+}
+
+.field:hover {
+  border-bottom-color: var(--outline);
 }
 
 .field:focus {
-  outline: 2px solid var(--accent);
-  outline-offset: 1px;
-  border-color: var(--accent);
+  outline: none;
+  background: var(--surface);
+  border: 1px solid var(--accent);
+  border-bottom: 2px solid var(--accent);
 }
 
 :focus-visible {
@@ -148,7 +234,7 @@ select.field {
   position: relative;
   overflow: hidden;
   background: var(--surface-variant);
-  border-radius: 8px;
+  border-radius: 12px;
 }
 
 .skeleton::after {
@@ -178,23 +264,26 @@ select.field {
 
 /* ---------- dark theme (M3 dark tones) ---------- */
 html.dark {
-  --paper: #101414;
-  --surface: #1a2121;
-  --surface-variant: #2a3332;
-  --ink: #e0e3e2;
-  --accent: #4ddad0;
-  --accent-ink: #4ddad0;
-  --on-accent: #003733;
-  --accent-container: #004f47;
-  --on-accent-container: #6ff7e9;
-  --muted: #bec9c6;
-  --border: #2f3837;
-  --outline: #889392;
+  --paper: #0e1211;
+  --surface: #161c1b;
+  --surface-variant: #232c2b;
+  --surface-warm: #1d2423;
+  --ink: #e4e7e4;
+  --ink-soft: #c3c9c6;
+  --accent: #5ad8c8;
+  --accent-deep: #8df0e1;
+  --accent-ink: #5ad8c8;
+  --on-accent: #00332c;
+  --accent-container: #0b4a41;
+  --on-accent-container: #b8f4e7;
+  --signal: #d7f24b;
+  --on-signal: #141806;
+  --muted: #a8b3af;
+  --border: #2c3534;
+  --outline: #8a948f;
   --good: #7bd88f;
   --warn: #ffcf87;
   --bad: #ffb4ab;
-  --shadow-card: none;
-  --shadow-paper: none;
   color-scheme: dark;
 }
 
@@ -203,8 +292,16 @@ html.dark .skeleton::after {
 }
 
 html.dark .field {
-  background: var(--surface);
+  background: var(--surface-variant);
   color: var(--ink);
+}
+
+html.dark .field:focus {
+  background: var(--surface);
+}
+
+html.dark .btn-accent {
+  color: var(--on-accent);
 }
 
 html.dark .btn-ghost:hover,
@@ -214,32 +311,41 @@ html.dark .navlink:hover {
 }
 
 html.dark .navlink-active {
-  background: var(--accent-container);
-  color: var(--on-accent-container);
+  background: var(--ink);
+  color: var(--paper);
 }
 
 html.dark .bg-good-tint {
   background: #12361f;
 }
 
-/* M3 inverse panel — the bold moment. Dark ink on light mode, flipped on dark. */
+/* M3 tonal panel — the bold moment. Deep lagoon ink, paper text, signal meters.
+   No black: the panel is the accent at full strength, not a void. */
 .panel-ink {
-  background: #191c1c;
-  color: #e0e3e2;
-  border-radius: 20px;
+  background: var(--accent-deep);
+  color: #f2f5f1;
+  border-radius: 28px;
 }
 
 .panel-ink .meter {
-  background: rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.22);
+}
+
+.panel-ink .meter > span {
+  background: var(--signal);
 }
 
 html.dark .panel-ink {
-  background: #e0e3e2;
-  color: #191c1c;
+  background: var(--accent-container);
+  color: var(--on-accent-container);
 }
 
 html.dark .panel-ink .meter {
   background: rgba(0, 0, 0, 0.14);
+}
+
+html.dark .panel-ink .meter > span {
+  background: var(--accent-deep);
 }
 
 /* ---------- helpers ---------- */
@@ -334,14 +440,31 @@ html.theming header {
   }
 }
 
-/* ---------- nav links: instant color change, underline only when current ---------- */
+/* ---------- nav links: sliding underline on hover, solid when current ---------- */
 .nav-underline {
   position: relative;
   transition: color var(--motion);
+  text-decoration: none;
+}
+
+.nav-underline::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 100%;
+  bottom: -3px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--accent-ink);
+  transition: right var(--motion);
 }
 
 .nav-underline:hover {
   color: var(--accent-ink);
+}
+
+.nav-underline:hover::after {
+  right: 0;
 }
 
 /* ---------- M3 list rows, chips, meters ---------- */
@@ -349,12 +472,13 @@ html.theming header {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 38px;
-  height: 38px;
+  width: 44px;
+  height: 44px;
   flex: none;
-  border-radius: 12px;
+  border-radius: 16px;
   background: var(--accent-container);
   color: var(--on-accent-container);
+  font-weight: 700;
 }
 
 .nchip {
@@ -364,8 +488,8 @@ html.theming header {
   font-weight: 700;
   color: var(--on-accent-container);
   background: var(--accent-container);
-  border-radius: 8px;
-  padding: 3px 9px;
+  border-radius: 10px;
+  padding: 4px 10px;
 }
 
 .pill {
@@ -376,7 +500,7 @@ html.theming header {
   font-size: 12px;
   border: 1px solid var(--border);
   border-radius: var(--radius-control);
-  padding: 5px 12px;
+  padding: 6px 13px;
   background: var(--surface);
 }
 
@@ -405,7 +529,7 @@ html.theming header {
 .page-stack i {
   position: absolute;
   inset: 0;
-  border-radius: 8px;
+  border-radius: 10px;
   border: 1px solid var(--border);
   background: var(--surface-variant);
 }
@@ -424,7 +548,7 @@ html.theming header {
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 8px;
+  border-radius: 10px;
   border: 1px solid var(--border);
   background: var(--surface);
   font-family: var(--font-mono), monospace;
@@ -433,7 +557,7 @@ html.theming header {
 }
 
 .meter {
-  height: 8px;
+  height: 10px;
   border-radius: var(--radius-control);
   background: var(--surface-variant);
   overflow: hidden;
@@ -454,18 +578,22 @@ html.theming header {
 }
 
 .bg-good-tint {
-  background: #dcefe2;
+  background: #d8edda;
 }
 
 .rowlink:hover {
   background: var(--surface-variant);
 }
 
+.rowlink {
+  border-radius: 18px;
+}
+
 .navlink {
   border-radius: var(--radius-control);
-  padding: 10px 16px;
-  font-size: 14px;
-  font-weight: 500;
+  padding: 13px 20px;
+  font-size: 15px;
+  font-weight: 600;
 }
 
 .navlink:hover {
@@ -473,9 +601,9 @@ html.theming header {
 }
 
 .navlink-active {
-  background: var(--accent-container);
-  color: var(--on-accent-container);
-  font-weight: 600;
+  background: var(--ink);
+  color: var(--paper);
+  font-weight: 700;
 }
 
 @keyframes rise {
@@ -504,7 +632,7 @@ html.theming header {
   width: 6px;
   height: 6px;
   border-radius: 2px;
-  background: var(--accent);
+  background: var(--signal);
   animation: pop 0.9s ease-out infinite;
 }
 
@@ -528,6 +656,24 @@ html.theming header {
     transform: translateY(-4px) scale(1.25);
     opacity: 0.7;
   }
+}
+
+/* ---------- kicker: sentence-case mono label (never an ALL-CAPS eyebrow) ---------- */
+.kicker {
+  font-family: var(--font-mono), monospace;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--accent-ink);
+  letter-spacing: 0.02em;
+}
+
+/* ---------- editorial figure (stat numerals) ---------- */
+.figure {
+  font-family: var(--font-display), sans-serif;
+  font-weight: 700;
+  letter-spacing: -0.035em;
+  line-height: 0.95;
+  font-variant-numeric: tabular-nums;
 }
 
 /* ---------- Lenis smooth scroll (animation budget: wheel/anchor only,
@@ -560,22 +706,19 @@ p {
   text-wrap: pretty;
 }
 
-/* ---------- kicker: sentence-case mono label (never an ALL-CAPS eyebrow) ---------- */
-.kicker {
-  font-family: var(--font-mono), monospace;
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--accent-ink);
-  letter-spacing: 0.02em;
+/* ---------- native dialog (manage-models modal) ---------- */
+dialog.paper-card {
+  border: 1px solid var(--border);
+  padding: 0;
+  overscroll-behavior: contain;
 }
 
-/* ---------- editorial figure (stat numerals) ---------- */
-.figure {
-  font-family: var(--font-display), sans-serif;
-  font-weight: 700;
-  letter-spacing: -0.03em;
-  line-height: 1;
-  font-variant-numeric: tabular-nums;
+dialog::backdrop {
+  background: rgba(16, 20, 19, 0.45);
+}
+
+html.dark dialog::backdrop {
+  background: rgba(0, 0, 0, 0.6);
 }
 
 @media (prefers-reduced-motion: reduce) {

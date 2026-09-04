@@ -1,5 +1,6 @@
 # DocuForge Humanized — Detailed Architecture & Project Plan
-**Version:** 1.13.0 | **Date:** 2026-09-04 | **Stack:** Open-Source + NVIDIA NIM on Vercel + TiDB Cloud | **Format:** Professional, 150 words/page, 100% Human Score Target
+**Version:** 1.15.0 | **Date:** 2026-09-04 | **Stack:** Open-Source + NVIDIA NIM on Vercel + TiDB Cloud | **Format:** Professional, 150 words/page, 100% Human Score Target
+**Changelog v1.15.0:** BYOK provider keys (OpenRouter/Groq/custom, Fernet-encrypted, masked reads, SSRF-guarded customs, key-gated enables, routed generation); prompt-injection hygiene (`sanitize_brief` + `<user_brief>` treat-as-data block); expensive-route rate limits (generate 10/min, humanize 20/min, batch 5/min, export 20/min); Permissions-Policy + conditional HSTS; picker reachable-first with modal-close reload; manager hover/filter/BYOK UI; admin docs-by-type + audit-trail panels; migration `0004`, 79/79 tests passing.
 **Changelog v1.13.0:** HF-local detector path deleted (can't run on serverless — see §6); retrieval foundation instead: embeddings-API + stored vectors (`services/rag.py`, `POST /api/rag/similar`, `sections.embedding_json`, migration `0002`, `scripts/backfill_embeddings.py`), 7/7 tests passing; native TiDB VECTOR upgrade path documented.
 **Changelog v1.12.0:** Studio humanizes section-by-section with live progress + Stop (no more 60s batch risk); per-doc model override in console (`PUT /documents/{id}` validates models); document search (`q` on `/api/documents` + project-page filter); `GET /api/stats` COUNT-only totals; cursor pagination (`cursor`/`next_cursor` over created_at+id) on projects/documents/exports; lazy Mermaid rendering; Vercel refuses to boot on dev JWT default.
 **Changelog v1.11.0:** Full 15-page restyle (editorial M3: kickers, figures, numbered rows, auth brand panel, stepped wizard, Lenis smooth scroll); Alembic migrations (`apps/api/alembic/` + `0001_initial`), `scripts/seed_data.py` + `scripts/eval.py` (5/5 passing); §13 tokens corrected to shipped M3 values; section editing is markdown textarea (TipTap deferred).
@@ -128,12 +129,13 @@ documents(id CHAR(36) PRIMARY KEY DEFAULT (UUID()), project_id CHAR(36) NOT NULL
 sections(id CHAR(36) PRIMARY KEY DEFAULT (UUID()), document_id CHAR(36) NOT NULL, title VARCHAR(255), order_idx INT, content_md MEDIUMTEXT, content_humanized_md MEDIUMTEXT, word_count INT, ai_score DECIMAL(5,2), human_score DECIMAL(5,2), iteration INT DEFAULT 0, mermaid_svg MEDIUMTEXT, embedding_json MEDIUMTEXT, FOREIGN KEY (document_id) REFERENCES documents(id) ON DELETE CASCADE, INDEX idx_sections_doc (document_id));
 versions(id CHAR(36) PRIMARY KEY DEFAULT (UUID()), document_id CHAR(36) NOT NULL, version_no INT, snapshot_json JSON, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (document_id) REFERENCES documents(id) ON DELETE CASCADE);
 exports(id CHAR(36) PRIMARY KEY DEFAULT (UUID()), document_id CHAR(36) NOT NULL, user_id CHAR(36) NOT NULL, format ENUM('pdf','docx'), path VARCHAR(512), cloudinary_public_id VARCHAR(255), secure_url VARCHAR(512), pages INT, words_total INT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (document_id) REFERENCES documents(id) ON DELETE CASCADE);
+user_llm_keys(id CHAR(36) PRIMARY KEY DEFAULT (UUID()), user_id CHAR(36) NOT NULL, provider VARCHAR(32) NOT NULL, label VARCHAR(100) NOT NULL DEFAULT '', encrypted_key TEXT NOT NULL, base_url VARCHAR(512), created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, UNIQUE KEY uq_user_llm_key (user_id, provider, label), FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE);
 ```
 UUID v4 opaque IDs for every table (`CHAR(36) PRIMARY KEY DEFAULT (UUID())`; FK columns `CHAR(36)`). Sequential integer IDs are forbidden: never exposed in any API request/response/URL, never accepted as input (Pydantic `UUID4`, 404 on invalid — no enumeration). TiDB `AUTO_RANDOM` rejected (so integer PKs never leak via `LAST_INSERT_ID`/offset pagination. Cursor pagination uses `created_at+id`). All FKs enforced with `ON DELETE CASCADE` (incl. `documents.user_id`, `exports.user_id`); `updated_at` on projects/documents/sections for dashboard sort. Object `secure_url` + `public_id` from **Cloudinary free** (fallback: local `data/exports/` if `CLOUDINARY_URL` missing). Indices on `user_id`, `project_id`, `document_id`. Migrations via `apps/api/alembic/`.
 
 ## 11. API Specification (FastAPI, OpenAPI at `/docs`) — All Required APIs
 
-Base URL: `http://localhost:8000` | Auth: JWT enforced globally — every `/api/*` requires auth except `GET /api/health` (liveness, no data). Web via httpOnly `Secure; SameSite=Lax` cookie, API via `Authorization: Bearer`; `POST /api/auth/refresh` rotates. JWT carries `role: user|admin`; admin routes guard with `require_role('admin')`. Every data query scoped `WHERE user_id = me` (admin bypass only on `/api/admin/*`) | Rate-limit: `60/min` via `slowapi` (forgot-password `5/min`/IP) | All request/response `application/json` unless noted.
+Base URL: `http://localhost:8000` | Auth: JWT enforced globally — every `/api/*` requires auth except `GET /api/health` (liveness, no data). Web via httpOnly `Secure; SameSite=Lax` cookie, API via `Authorization: *** `POST /api/auth/refresh` rotates. JWT carries `role: user|admin`; admin routes guard with `require_role('admin')`. Every data query scoped `WHERE user_id = me` (admin bypass only on `/api/admin/*`) | Rate-limit: `60/min` via `slowapi` (forgot-password `5/min`/IP; AI routes tighter: generate/stream/regenerate `10/min`, humanize `20/min`, humanize-batch `5/min`, export `20/min`, keys-save `10/min`) | All request/response `application/json` unless noted.
 
 ### 11.1 Auth APIs (6 endpoints — JWT + Email)
 
@@ -146,7 +148,7 @@ Base URL: `http://localhost:8000` | Auth: JWT enforced globally — every `/api/
 | 5 | `GET` | `/api/auth/me` | Current user | `Bearer JWT` | `{id,email,display_name}` | Guard for `(main)` |
 | 6 | `PUT` | `/api/auth/me` | Edit profile | `{display_name?, current_password?, new_password?}` | `{id,email,display_name,role}` | Password change needs current (401 otherwise); powers `/profile` |
 
-### 11.2 Core APIs (39 endpoints)
+### 11.2 Core APIs (shipped endpoints)
 
 | # | Method | Endpoint | Purpose | Request Body / Params | Response | Notes |
 |---|--------|----------|---------|----------------------|----------|-------|
@@ -186,12 +188,19 @@ Base URL: `http://localhost:8000` | Auth: JWT enforced globally — every `/api/
 | 34 | `POST` | `/api/auth/refresh` | Rotate refresh token | `{refresh_token}` | `{access_token, refresh_token}` | Reuse detection, httpOnly cookie |
 | 35 | `GET` | `/api/admin/users` | List users (admin) | `?q=&limit=&offset=` | `{items:[{id(UUID),email,display_name,role,created_at}], total}` | `require_role(admin)` |
 | 36 | `PUT` | `/api/admin/users/{id}/role` | Set role (admin) | `{role:"user\|admin"}` | `{id, role}` | UUID id; audit-logged |
-| 37 | `GET` | `/api/admin/stats` | Usage stats (admin) | — | `{users, docs, tokens_by_model}` | Admin dashboard |
+| 37 | `GET` | `/api/admin/stats` | Usage stats (admin) | — | `{users, docs, tokens_total, tokens_by_model, tokens_per_user:[{user_id, email, display_name, tokens}], docs_by_type, recent_audits}` | Admin dashboard |
 | 38 | `GET` | `/api/documents/{id}/versions` | List version snapshots | — | `{items:[{version_no, created_at}]}` | Powers studio Versions card |
 | 39 | `POST` | `/api/sections/{id}/move` | Reorder outline | `{direction:"up\|down"}` | `{id, order_idx, moved}` | Swaps with neighbour; `moved:false` at edges; 422 `SECTION_BAD_MOVE` |
 | 40 | `GET` | `/api/stats` | Workspace totals (COUNT-only) | — | `{projects, documents, exports}` | Powers dashboard figures; no row fetching |
 | 41 | `POST` | `/api/rag/similar` | Similar sections (retrieval) | `{text, top_k?≤20, project_id?, embedding_model?}` | `{model, items:[{section_id, document_id, document_title, section_title, score}]}` | Embeddings API + stored vectors; 503 when unconfigured; per-request lite↔large switch (validated); re-run backfill `--all` after changing corpus model |
 | 42 | `GET` | `/api/rag/status` | Retrieval index health | — | `{configured, model, sections_total, sections_embedded, models_present}` | Shows what share is embedded and which models produced the vectors |
+| 43 | `GET` | `/api/models/available` | Live NVIDIA list | — | `{live, models:[{id,label,role,cost}], hint?}` | Cached 10 min server-side; `live:false` when keyless/mock |
+| 44 | `GET` | `/api/models/enabled` | My enabled models | — | `{items:[{id,label,role,cost}]}` | Per-user picker set |
+| 45 | `POST` | `/api/models/enabled` | Enable/disable a model | `{model_id, enabled?}` | `{model_id, enabled}` | Provider ids (`groq/…`, `openrouter/…`, `custom/label/…`) need the matching saved key — even in mock mode |
+| 46 | `GET` | `/api/models/keys` | My saved provider keys | — | `{items:[{id,provider,label,masked_key,base_url,created_at}]}` | Masked only — plaintext never stored or returned |
+| 47 | `POST` | `/api/models/keys` | Save/rotate a provider key | `{provider: openrouter\|groq\|custom, label?, api_key, base_url?}` | `201 {saved}` | Fernet-encrypted at rest; customs need https public base URL (SSRF-guarded); `10/min`; errors `BYOK_INVALID` |
+| 48 | `DELETE` | `/api/models/keys/{id}` | Delete a saved key | — | `{deleted}` | Scoped to owner; `404 BYOK_NOT_FOUND` |
+| 49 | `GET` | `/api/models/auto-preview` | Auto pick + reasons | `?role=&idea=&doc_type=&depth=&text=` | `{model, reasons}` | Inspectable Auto choice |
 
 **Validation & access:** Global auth dependency (401 without JWT; only `GET /api/health` public). All resource IDs UUID v4 (422/404 on invalid, no sequential ints ever). All data endpoints scoped `WHERE user_id = me` (return 404, not 403, on another user's UUID to avoid existence oracle). Lists paginate by cursor (`?cursor=` opaque `created_at+id`, `next_cursor` in response; legacy `offset` still honored when no cursor is sent). Pydantic 422 on bad input, XSS-escaped markdown + sanitized SVG, CORS prod + previews, `X-Request-Id` logged.
 
@@ -299,13 +308,16 @@ apps/api/
 │   └── app/
 │       ├── main.py                # create FastAPI, mount CORS, include routers, health
 │       ├── core/
-│       │   ├── config.py          # Env: TiDB_URL, NVIDIA_NIM_API_KEY, JWT_SECRET, RESEND_API_KEY
+│       │   ├── config.py          # Env: TiDB_URL, NVIDIA_NIM_API_KEY, JWT_SECRET, LLM_KEYS_SECRET, RESEND_API_KEY
 │       │   ├── security.py        # JWT (jose), bcrypt, forgot-token create/verify, get_current_user
 │       │   └── rate_limit.py      # slowapi guards
 │       ├── db/
 │       │   └── client.py          # TiDB singleton: SQLAlchemy create_engine(TiDB_URL + ssl), SessionLocal
 │       ├── entities/              # DB Schema (SQLAlchemy models) — UUID PKs
 │       │   ├── user.py            # User, PasswordResetToken
+│       │   ├── admin_audit.py     # role-change audit trail
+│       │   ├── user_model.py      # per-user enabled picker models
+│       │   ├── llm_key.py         # BYOK keys: Fernet ciphertext only, never plaintext
 │       │   ├── project.py
 │       │   ├── document.py
 │       │   ├── section.py
@@ -317,12 +329,15 @@ apps/api/
 │       │   └── common.py
 │       ├── repositories/          # Only DB queries
 │       │   ├── user_repo.py       # get_by_email, create, get_by_token
+│       │   ├── user_model_repo.py # enabled picker set per user
+│       │   ├── llm_key_repo.py    # BYOK key rows (ciphertext in/out only)
 │       │   ├── project_repo.py
 │       │   ├── document_repo.py
 │       │   └── section_repo.py
 │       ├── services/              # Business logic
 │       │   ├── auth_service.py    # signup, login, forgot (Resend), reset
-│       │   ├── llm/nim_client.py  # NIM streaming (catalog-driven)
+│       │   ├── keys.py            # BYOK: Fernet encrypt/mask, SSRF-guard customs, transport routing
+│       │   ├── llm/nim_client.py  # NIM streaming (catalog-driven) + BYOK transport
 │       │   │   ├── models.py          # NIM catalog + ALLOWED_MODELS validation + defaults
 │       │   ├── storage/cloudinary_client.py # Cloudinary free upload (PDF/DOCX/SVG → secure_url)
 │       │   ├── generator.py       # prompt builder, section splitter
@@ -339,13 +354,14 @@ apps/api/
 │       ├── routes/                # APIRouter with prefix
 │       │   ├── auth.py            # /api/auth/*
 │       │   ├── generate.py        # /api/generate*
+│       │   ├── models.py          # /api/models/* (available, enabled, keys, auto-preview)
 │       │   ├── documents.py       # /api/documents*, /api/projects*
 │       │   ├── humanize.py
 │       │   ├── rag.py             # /api/rag/similar
 │       │   └── export.py
 │       └── middleware/
 │           └── cors.py
-├── tests/                         # unit/, integration/, eval/golden_set.jsonl
+├── tests/                         # unit/, integration/, eval/golden_set.jsonl (incl. test_byok.py)
 ├── scripts/
 │   ├── migrate.py                 # create_all bootstrap (needs TIDB_URL)
 │   ├── seed_data.py               # demo user + sample project (offline, no NIM; never seeds admins)
@@ -357,6 +373,7 @@ apps/api/
 │   ├── versions/0001_initial.py   # 9 tables, UUID PKs, cascades
 │   └── versions/0002_section_embeddings.py  # sections.embedding_json (stored vectors)
 │   └── versions/0003_embedding_model.py     # sections.embedding_model (which model made the vector)
+│   └── versions/0004_llm_keys.py            # user_llm_keys (BYOK ciphertext + unique user/provider/label)
 └── requirements.txt               # fastapi, uvicorn, pymysql, jose, passlib, resend, spacy, textstat, tiktoken, alembic (+ en_core_web_sm wheel; weasyprint in worker only)
 ```
 **Rule:** `routes → services → repositories → db` — never skip layer (`controllers/` merged into routes). Replace TiDB without touching service.
@@ -420,10 +437,10 @@ scripts/           # migrate.sh, seed.sh
 **Tokens (`tokens.css` — the ONLY place for raw values):** `--paper: #f6f4f1; --surface: #ffffff; --surface-variant: #e4e7e5; --ink: #191c1c; --accent: #00696b; --on-accent: #ffffff; --accent-container: #6ff7e9; --on-accent-container: #00201c; --muted: #3f4948; --border: #d4dcd9; --radius: 16px; --radius-control: 999px` (dark theme flips to M3 dark tones; `color-scheme` set). No shadows anywhere (`--shadow-card: none`). **Typography:** Space Grotesk 700 display (tight -0.03em, `text-wrap: balance`), Roboto 400/500/700 body, JetBrains Mono for code/labels; `text-wrap: pretty` on paragraphs. **Signature elements:** sentence-case mono `.kicker` labels (never ALL-CAPS eyebrows), tabular `.figure` numerals, hairline divide-rows with mono index numerals, `.pill`/`.nchip` meta chips, M3 inverse `.panel-ink` as the one bold moment per page. **Layout:** quiet single-column flows, numbered editorial rows instead of card grids, sticky studio console/outline on desktop, compact stacks on 375px mobile (no overflow, no truncation). **Motion budget:** color fades, press scale, open/confirm/expand + one 200ms load entrance; Lenis wheel/anchor smoothing only (skipped under reduced motion, paused during theme wipe); scroll-reveal/lift retired. **A11y:** focus rings, 44px targets, keyboard nav, `prefers-reduced-motion` kills all motion. **Craft:** empty states with example actions, error with retry, per-section skeletons, CSS confetti + "Reads fully human" at doc avg ≥95%. **Theme:** light/dark via `ThemeContext` + `html.dark` var overrides (persisted `df-theme`, OS default, no-flash inline script, 260ms circle-wipe from click point); toggles in sidebar + landing.
 
 ## 14. Security, Deployment & DevOps (Vercel Free Tier — No Docker/Nginx)
-- **Security:** Validate all input (Pydantic), escape markdown + sanitize Mermaid SVG (`nh3`/`bleach`, strip `<script>`/`on*`), rate-limit (`slowapi` 60/min; forgot `5/min`/IP), CSP headers (`img-src data:` for inline SVG), bcrypt + JWT (access 1h, refresh 7d with rotation + reuse detection; httpOnly `Secure; SameSite=Lax` cookie for web, Bearer for API), no secrets in logs, `.env` gitignored, `npm audit`/`pip-audit` clean, TiDB TLS `ssl_ca`. CORS: prod `https://<app>.vercel.app` + previews `https://*.vercel.app` (or BFF proxy to skip CORS).
+- **Security:** Validate all input (Pydantic), escape markdown + sanitize Mermaid SVG (`nh3`/`bleach`, strip `<script>`/`on*`), rate-limit (`slowapi` 60/min global; forgot `5/min`/IP; AI routes tighter: generate/stream/regenerate `10/min`, humanize `20/min`, humanize-batch `5/min`, export `20/min`, keys-save `10/min`), CSP headers (`img-src data:` for inline SVG) + `Permissions-Policy` lockdown + HSTS when `COOKIE_SECURE=true`, prompt-injection hygiene for briefs (`sanitize_brief` strips control chars/collapses whitespace, `<user_brief>` treat-as-data block), BYOK keys Fernet-encrypted with masked-only reads + SSRF-guarded customs + per-owner key rows, bcrypt + JWT (access 1h, refresh 7d with rotation + reuse detection; httpOnly `Secure; SameSite=Lax` cookie for web, Bearer for API), no secrets in logs, `.env` gitignored, `npm audit`/`pip-audit` clean, TiDB TLS `ssl_ca`. CORS: prod `https://<app>.vercel.app` + previews `https://*.vercel.app` (or BFF proxy to skip CORS).
 - **Build:** No Docker. Frontend: Vercel builds `apps/web` (Next.js, `pnpm build`). Backend: Vercel Python builds `apps/api` (requirements.txt pinned). Lockfiles: `pnpm-lock.yaml`, `requirements.txt` hashed.
 - **Health:** `GET /api/health` (checks TiDB + NIM + detector) + `GET /api/auth/me` for auth.
-- **Deploy:** `git push` → Vercel auto-deploy. Env vars in Vercel Dashboard: `TIDB_URL`, `NVIDIA_NIM_API_KEY`, `JWT_SECRET`, `RESEND_API_KEY`, `EMBEDDING_API_URL/KEY/MODEL` (optional; retrieval off when empty). Local mirrors prod: same env via `.env` at repo root. No `docker compose`.
+- **Deploy:** `git push` → Vercel auto-deploy. Env vars in Vercel Dashboard: `TIDB_URL`, `NVIDIA_NIM_API_KEY`, `JWT_SECRET`, `LLM_KEYS_SECRET` (BYOK encryption — set it, JWT rotation orphans saved keys otherwise), `RESEND_API_KEY`, `EMBEDDING_API_URL/KEY/MODEL` (optional; retrieval off when empty). Local mirrors prod: same env via `.env` at repo root. No `docker compose`.
 - **Logs:** Vercel Runtime Logs (JSON, no PII), `LOG_LEVEL` env.
 
 ## 15. Development Roadmap (4 Sprints, 3 Weeks MVP)

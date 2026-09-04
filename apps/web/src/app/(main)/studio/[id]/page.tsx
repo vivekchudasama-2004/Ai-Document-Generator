@@ -6,6 +6,7 @@ import { ScoreRing, SectionSkeleton, Toast } from "@/components/ui/ui";
 import RefreshButton from "@/components/ui/RefreshButton";
 import SectionCard from "@/components/features/SectionCard";
 import VersionsCard from "@/components/features/VersionsCard";
+import ManageModelsModal from "@/components/features/ModelModal";
 import Confetti from "@/components/fx/Confetti";
 import ErrorBoundary from "@/components/ui/ErrorBoundary";
 import type { DocumentDetail } from "@/types";
@@ -50,12 +51,24 @@ export default function StudioPage({ params }: { params: Promise<{ id: string }>
     loadDocument().catch(() => setError("Couldn't open this document."));
   }, [loadDocument]);
 
-  // Model catalog for the per-document override (once per studio visit).
-  useEffect(() => {
-    api<{ models: { id: string; label: string }[] }>("/api/meta/models")
-      .then((m) => setModelCatalog(m.models.map((x) => ({ id: x.id, label: x.label }))))
-      .catch(() => undefined);
+  // Model catalog for the per-document override (once per studio visit):
+  // curated catalog plus the user's enabled extras, so models toggled in
+  // the Manage dialog actually appear here.
+  const loadCatalog = useCallback(async () => {
+    const [meta, enabled] = await Promise.all([
+      api<{ models: { id: string; label: string }[] }>("/api/meta/models"),
+      api<{ items: { id: string; label: string }[] }>("/api/models/enabled"),
+    ]);
+    const known = new Set(meta.models.map((x) => x.id));
+    setModelCatalog([
+      ...meta.models.map((x) => ({ id: x.id, label: x.label })),
+      ...enabled.items.filter((x) => !known.has(x.id)).map((x) => ({ id: x.id, label: x.label })),
+    ]);
   }, []);
+
+  useEffect(() => {
+    loadCatalog().catch(() => undefined);
+  }, [loadCatalog]);
 
   async function humanizeSection(sectionId: string) {
     setBusySectionId(sectionId);
@@ -420,6 +433,9 @@ export default function StudioPage({ params }: { params: Promise<{ id: string }>
             <div className="flex justify-between gap-2 text-sm">
               <span className="text-[var(--muted)]">Status</span>
               <span className="font-semibold capitalize">{document.status}</span>
+            </div>
+            <div className="pt-1">
+              <ManageModelsModal onChanged={() => loadCatalog().catch(() => undefined)} />
             </div>
           </div>
           <VersionsCard versions={versions} busy={busySectionId !== null} onRestore={restoreVersion} />

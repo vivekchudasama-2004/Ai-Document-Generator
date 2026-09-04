@@ -12,7 +12,7 @@ export function ThemeToggle() {
       aria-label={dark ? "Switch to light mode" : "Switch to dark mode"}
       aria-pressed={dark}
       title={dark ? "Switch to light mode" : "Switch to dark mode"}
-      className="btn-ghost flex min-h-11 items-center justify-center gap-2 px-3 text-sm font-semibold"
+      className="btn-ghost min-h-11 gap-2 px-4 text-sm"
     >
       {dark ? (
         <svg className="theme-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden>
@@ -29,14 +29,14 @@ export function ThemeToggle() {
   );
 }
 
-export function ScoreRing({ value, size = 44 }: { value: number | null; size?: number }) {
+export function ScoreRing({ value, size = 48 }: { value: number | null; size?: number }) {
   const v = value ?? 0;
   const color = value == null ? "var(--muted)" : v >= 90 ? "var(--good)" : v >= 70 ? "var(--warn)" : "var(--bad)";
   const r = 15.5;
   const c = 2 * Math.PI * r;
   return (
     <span
-      className="inline-flex items-center gap-2"
+      className="inline-flex items-center gap-2.5"
       title={value == null ? "Not scored yet" : `${v}% human`}
       role="img"
       aria-label={value == null ? "Not scored" : `${v} percent human`}
@@ -57,18 +57,18 @@ export function ScoreRing({ value, size = 44 }: { value: number | null; size?: n
           transform="rotate(-90 18 18)"
         />
       </svg>
-      <span className="text-sm font-semibold">{value == null ? "—" : `${v}%`}</span>
+      <span className="font-display text-lg font-bold tabular-nums">{value == null ? "—" : `${v}%`}</span>
     </span>
   );
 }
 
 export function SectionSkeleton() {
   return (
-    <div className="paper-card space-y-3 p-5" aria-busy="true" aria-label="Section loading">
-      <div className="skeleton h-5 w-1/3" />
-      <div className="skeleton h-3 w-full" />
-      <div className="skeleton h-3 w-11/12" />
-      <div className="skeleton h-3 w-4/5" />
+    <div className="paper-card space-y-3 p-6" aria-busy="true" aria-label="Section loading">
+      <div className="skeleton h-6 w-1/3" />
+      <div className="skeleton h-3.5 w-full" />
+      <div className="skeleton h-3.5 w-11/12" />
+      <div className="skeleton h-3.5 w-4/5" />
     </div>
   );
 }
@@ -83,13 +83,13 @@ export function EmptyState({
   action: React.ReactNode;
 }) {
   return (
-    <div className="paper-card mx-auto max-w-xl p-10 text-center">
-      <div className="font-display mx-auto text-5xl" aria-hidden>
+    <div className="paper-card mx-auto max-w-xl p-10 text-center sm:p-12">
+      <div className="chip mx-auto !h-14 !w-14 text-2xl" aria-hidden>
         ✎
       </div>
-      <h2 className="font-display mt-4 text-2xl font-bold">{title}</h2>
-      <p className="mt-2 text-[var(--muted)]">{hint}</p>
-      <div className="mt-6">{action}</div>
+      <h2 className="font-display mt-5 text-balance text-3xl font-bold">{title}</h2>
+      <p className="mx-auto mt-2 max-w-[40ch] text-pretty leading-relaxed text-[var(--muted)]">{hint}</p>
+      <div className="mt-7 flex flex-col justify-center gap-2">{action}</div>
     </div>
   );
 }
@@ -97,7 +97,7 @@ export function EmptyState({
 export function Toast({ kind, message }: { kind: "error" | "success"; message: string }) {
   const border = kind === "error" ? "var(--bad)" : "var(--good)";
   return (
-    <p role="alert" className="toast paper-card border-l-4 p-4 text-sm" style={{ borderLeftColor: border }}>
+    <p role="alert" className="toast paper-card border-l-4 p-4 text-sm leading-relaxed" style={{ borderLeftColor: border }}>
       {message}
     </p>
   );
@@ -106,7 +106,7 @@ export function Toast({ kind, message }: { kind: "error" | "success"; message: s
 export function FieldError({ message }: { message?: string }) {
   if (!message) return null;
   return (
-    <p role="alert" className="mt-1 text-sm text-[var(--bad)]">
+    <p role="alert" className="mt-1.5 text-sm font-medium text-[var(--bad)]">
       {message}
     </p>
   );

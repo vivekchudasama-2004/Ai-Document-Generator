@@ -41,9 +41,11 @@ class Settings(BaseSettings):
     EMBEDDING_API_URL: str = ""
     EMBEDDING_API_KEY: str = ""
     EMBEDDING_MODEL: str = ""
+    # --- BYOK: encrypts users' provider keys. Set in prod; JWT rotation orphans keys otherwise. ---
+    LLM_KEYS_SECRET: str = ""
     LOG_LEVEL: str = "info"
     CORS_ORIGINS: str = "http://localhost:3000"
-    APP_VERSION: str = "1.13.0"
+    APP_VERSION: str = "1.15.0"
 
     @property
     def allowed_models(self) -> list[str]:

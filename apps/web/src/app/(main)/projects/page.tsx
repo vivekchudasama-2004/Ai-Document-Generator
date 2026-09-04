@@ -32,6 +32,7 @@ export default function ProjectsPage() {
   return (
     <div>
       <PageHeader
+        kicker="Workspace"
         title="Projects"
         description={projects?.length ? `${projects.length} project${projects.length === 1 ? "" : "s"} and counting.` : "Group related documents together."}
         actions={

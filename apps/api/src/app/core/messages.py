@@ -28,6 +28,8 @@ MESSAGES: dict[str, str] = {
     CODE.MODEL_EMPTY_RESPONSE: "The model returned nothing. Try again in a moment.",
     CODE.MODEL_TOO_LONG: "That request is too long for {model}. Shorten the idea and retry.",
     CODE.MODEL_UNAVAILABLE: "The writing service is busy. Your draft is safe — try again shortly.",
+    CODE.BYOK_INVALID: "That provider key can't be saved — check the provider, key, and URL, then try again.",
+    CODE.BYOK_NOT_FOUND: "We couldn't find that saved key. It may have been deleted.",
     # --- platform ---
     CODE.DB_NOT_CONFIGURED: "The database isn't connected. Set TIDB_URL and restart the API.",
     CODE.RAG_NOT_CONFIGURED: "Similar-search is off. Set EMBEDDING_API_URL, EMBEDDING_API_KEY and EMBEDDING_MODEL first.",

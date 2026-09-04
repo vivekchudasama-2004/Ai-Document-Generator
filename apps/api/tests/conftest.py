@@ -24,6 +24,7 @@ from app.db.client import Base, get_db
 import app.entities.user  # noqa: F401
 import app.entities.admin_audit  # noqa: F401
 import app.entities.user_model  # noqa: F401
+import app.entities.llm_key  # noqa: F401
 import app.entities.project  # noqa: F401
 import app.entities.document  # noqa: F401
 import app.entities.section  # noqa: F401

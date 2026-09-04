@@ -3,6 +3,7 @@ import difflib
 import re
 
 from app.services.detector import score_text
+from app.services import keys as _keys
 from app.services.llm import nim_client
 from app.services.llm.models import humanize_suffix, resolve_model
 
@@ -71,9 +72,13 @@ def word_diff(old: str, new: str) -> dict:
 async def humanize_text(
     text: str, *, strength: str = "medium", model_override: str | None = None,
     max_iterations: int = 3, extra_allowed: tuple = (),
+    db=None, user_id: str | None = None,
 ) -> dict:
     model = resolve_model("humanize", model_override, extra_allowed=extra_allowed, text=text)
     model_used = model  # nim_client may switch models on retry; track the actual one
+    transport = None
+    if db is not None and user_id:
+        transport = _keys.transport_for(db, user_id=user_id, model_id=model)
     system_prompt = HUMANIZE_SYSTEM[strength] + humanize_suffix(model)
     old_score = score_text(text)
     best_text, best_score = text, old_score["human_percent"]
@@ -88,6 +93,7 @@ async def humanize_text(
                     {"role": "user", "content": best_text},
                 ],
                 role="humanize",
+                transport=transport,
             )
         except Exception:
             candidate = _mock_rewrite(best_text)

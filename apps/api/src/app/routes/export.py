@@ -3,12 +3,13 @@ export row; Cloudinary upload when configured, else local data/exports file."""
 from pathlib import Path
 from uuid import UUID
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from fastapi.responses import FileResponse, RedirectResponse
 from sqlalchemy.orm import Session
 
 from app.core import error_codes as CODES
 from app.core.errors import fail
+from app.core.rate_limit import limiter
 
 from app.core.security import get_current_user
 from app.db.client import get_db
@@ -22,7 +23,8 @@ EXPORT_DIR = Path("data/exports")
 
 
 @router.post("/export/pdf")
-def export_pdf(body: dict, user=Depends(get_current_user), db: Session = Depends(get_db)):
+@limiter.limit("20/minute")
+def export_pdf(body: dict, request: Request, user=Depends(get_current_user), db: Session = Depends(get_db)):
     doc = document_repo.get_owned(db, user_id=str(user.id), document_id=str(body.get("documentId", "")))
     if not doc:
         fail(404, CODES.DOC_NOT_FOUND)
@@ -56,7 +58,8 @@ def export_pdf(body: dict, user=Depends(get_current_user), db: Session = Depends
 
 
 @router.post("/export/docx")
-def export_docx(body: dict, user=Depends(get_current_user), db: Session = Depends(get_db)):
+@limiter.limit("20/minute")
+def export_docx(body: dict, request: Request, user=Depends(get_current_user), db: Session = Depends(get_db)):
     doc = document_repo.get_owned(db, user_id=str(user.id), document_id=str(body.get("documentId", "")))
     if not doc:
         fail(404, CODES.DOC_NOT_FOUND)

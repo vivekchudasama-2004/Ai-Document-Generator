@@ -21,7 +21,7 @@ class TokenPair(BaseModel):
 
 
 class RefreshIn(BaseModel):
-    refresh_token: str
+    refresh_token: str = ""  # empty = read the refresh_token cookie (7-day browser sessions)
 
 
 class MeOut(BaseModel):

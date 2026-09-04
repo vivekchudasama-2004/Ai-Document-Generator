@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ScoreRing } from "@/components/ui/ui";
+import { ScoreRing, ThemeToggle } from "@/components/ui/ui";
 
 /**
  * Shared auth frame: inverse brand panel beside the form.
@@ -15,7 +15,10 @@ export default function AuthShell({
   children: React.ReactNode;
 }) {
   return (
-    <main className="mx-auto grid min-h-dvh w-full max-w-6xl items-center gap-8 px-5 py-10 sm:px-6 md:grid-cols-[1.05fr_minmax(0,1fr)] md:gap-12 md:py-16">
+    <main className="relative mx-auto grid min-h-dvh w-full max-w-6xl items-center gap-8 px-5 py-10 sm:px-6 md:grid-cols-[1.05fr_minmax(0,1fr)] md:gap-12 md:py-16">
+      <div className="absolute right-5 top-5 sm:right-6 sm:top-6">
+        <ThemeToggle />
+      </div>
       <div className="min-w-0 md:hidden">
         <Link href="/" className="font-display text-2xl font-bold">
           DocuForge
@@ -33,12 +36,18 @@ export default function AuthShell({
           <p className="font-display text-7xl font-bold leading-none lg:text-8xl" aria-hidden>
             72<span className="opacity-40">→</span>98
           </p>
-          <div className="mt-6 flex min-w-0 items-center gap-4">
-            <ScoreRing value={72} size={52} />
-            <div className="meter min-w-0 flex-1" aria-hidden>
-              <span style={{ width: "92%" }} />
+          <div className="mt-6 flex items-start justify-between gap-4">
+            <div>
+              <ScoreRing value={72} size={56} />
+              <p className="mt-2 font-mono text-[11px] opacity-60">First draft</p>
             </div>
-            <ScoreRing value={98} size={52} />
+            <div className="text-right">
+              <ScoreRing value={98} size={56} />
+              <p className="mt-2 font-mono text-[11px] opacity-60">After rewrite</p>
+            </div>
+          </div>
+          <div className="meter mt-5" aria-hidden>
+            <span style={{ width: "92%" }} />
           </div>
           <figcaption className="mt-5 max-w-[38ch] text-sm leading-relaxed opacity-70">
             Draft, score, rewrite. Only improvements are kept — every pass versioned with a diff.
@@ -52,10 +61,10 @@ export default function AuthShell({
       </figure>
 
       <div className="min-w-0">
-        <h1 className="font-display text-balance text-4xl font-bold leading-[1.05] sm:text-5xl">
+        <h1 className="h-page">
           {title}
         </h1>
-        <p className="mt-3 max-w-[44ch] text-pretty leading-relaxed text-[var(--muted)]">{lede}</p>
+        <p className="mt-3 max-w-[44ch] text-pretty text-base leading-relaxed text-[var(--muted)] sm:text-lg">{lede}</p>
         <div className="paper-card mt-6 p-5 sm:mt-8 sm:p-7">{children}</div>
       </div>
     </main>

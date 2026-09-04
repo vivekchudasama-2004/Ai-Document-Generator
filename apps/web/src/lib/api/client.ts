@@ -65,7 +65,7 @@ function redirectToLogin(apiPath: string) {
   window.location.href = "/login";
 }
 
-export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
+export async function api<T>(path: string, init: RequestInit = {}, retried = false): Promise<T> {
   let res: Response;
   try {
     res = await fetch(`${BASE}${path}`, {
@@ -75,6 +75,25 @@ export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
     });
   } catch {
     throw new ApiError(0, OFFLINE_ERROR, "OFFLINE");
+  }
+  // Silent refresh: the access cookie lives 1h, the refresh cookie 7d.
+  // One retry after rotation keeps users signed in across reloads for a week.
+  if (res.status === 401 && !retried && !path.startsWith("/api/auth/")) {
+    try {
+      const pair = await fetch(`${BASE}/api/auth/refresh`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ refresh_token: "" }),
+      });
+      if (pair.ok) {
+        const { access_token } = (await pair.json()) as { access_token: string };
+        setToken(access_token);
+        return api<T>(path, init, true);
+      }
+    } catch {
+      /* refresh failed — fall through to the login redirect */
+    }
   }
   if (res.status === 401) {
     redirectToLogin(path);
