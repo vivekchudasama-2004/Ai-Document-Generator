@@ -1,12 +1,11 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, JetBrains_Mono, Newsreader } from "next/font/google";
+import { Roboto, JetBrains_Mono } from "next/font/google";
 import "./tokens.css";
 import "./globals.css";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 
-const inter = Inter({ subsets: ["latin"], variable: "--font-body" });
-const newsreader = Newsreader({ subsets: ["latin"], style: ["normal", "italic"], variable: "--font-display" });
+const roboto = Roboto({ subsets: ["latin"], weight: ["400", "500", "700"], variable: "--font-body" });
 const mono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-mono" });
 
 export const metadata: Metadata = {
@@ -31,15 +30,15 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#fffbf5" },
-    { media: "(prefers-color-scheme: dark)", color: "#161210" },
+    { media: "(prefers-color-scheme: light)", color: "#f6f4f1" },
+    { media: "(prefers-color-scheme: dark)", color: "#101414" },
   ],
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${inter.variable} ${newsreader.variable} ${mono.variable}`}>
+      <body className={`${roboto.variable} ${mono.variable}`}>
         <script
           dangerouslySetInnerHTML={{
             __html: `(function(){try{var t=localStorage.getItem('df-theme');if(t==='dark'||(!t&&matchMedia('(prefers-color-scheme: dark)').matches))document.documentElement.classList.add('dark')}catch(e){}})()`,

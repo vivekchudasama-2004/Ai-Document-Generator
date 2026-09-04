@@ -1,5 +1,6 @@
 # DocuForge Humanized — Detailed Architecture & Project Plan
-**Version:** 1.9.0 | **Date:** 2026-09-03 | **Stack:** Open-Source + NVIDIA NIM on Vercel + TiDB Cloud | **Format:** Professional, 150 words/page, 100% Human Score Target
+**Version:** 1.10.0 | **Date:** 2026-09-03 | **Stack:** Open-Source + NVIDIA NIM on Vercel + TiDB Cloud | **Format:** Professional, 150 words/page, 100% Human Score Target
+**Changelog v1.10.0:** M3 Expressive re-theme (teal seed, tonal surfaces, stadium controls, Roboto); landing rebuilt ban-clean (list rows, tonal loop panel, static); scroll-reveal/lift/marquee retired.
 **Changelog v1.9.0:** `/profile` page + `PUT /auth/me` (name edit, password rotation); missing `user_models`/`admin_audits` tables created live; wizard/model selects de-truncated.
 **Changelog v1.8.1:** Studio rewrite-strength selector (light/medium/aggressive, single + batch); `components/fx/Confetti` + `components/layout/Sidebar` extracted; `lib/utils.ts` + `lib/api/server.ts` added; `available` verified on every catalog model.
 **Changelog v1.8.0:** Outline reorder (`POST /sections/{id}/move` + studio ↑/↓, 39th endpoint); CSP + `X-Request-Id` middleware (S11/S14 closed); 100%-human confetti; `docs/HUMANIZATION_GUIDE.md`.

@@ -13,9 +13,12 @@ const config: Config = {
       },
       borderRadius: { xl2: "var(--radius)" },
       fontFamily: {
-        display: ["var(--font-display)", "Newsreader", "Georgia", "serif"],
-        body: ["var(--font-body)", "Inter", "system-ui", "sans-serif"],
+        display: ["var(--font-body)", "Roboto", "system-ui", "sans-serif"],
+        body: ["var(--font-body)", "Roboto", "system-ui", "sans-serif"],
         mono: ["var(--font-mono)", "JetBrains Mono", "monospace"],
+      },
+      maxWidth: {
+        "6xl": "1120px",
       },
     },
   },

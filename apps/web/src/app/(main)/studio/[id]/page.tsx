@@ -279,7 +279,7 @@ export default function StudioPage({ params }: { params: Promise<{ id: string }>
             </p>
           ) : null}
           <div className="mt-4">
-            <p id="strength-label" className="text-xs font-semibold uppercase tracking-wider text-[var(--muted)]">
+            <p id="strength-label" className="text-sm font-semibold text-[var(--muted)]">
               Rewrite strength
             </p>
             <div className="mt-1.5 grid grid-cols-3 gap-1 rounded-xl border border-[var(--border)] p-1" role="group" aria-labelledby="strength-label">
