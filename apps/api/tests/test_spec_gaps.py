@@ -36,7 +36,7 @@ def test_usage_ledger_recorded(client, auth_headers):
     row = document_repo.get_owned(db, user_id=me["id"], document_id=doc_id)
     usage = json.loads(row.tokens_used_json)
     assert usage["completion_tokens"] > 0
-    assert "llama" in usage["model"] or "nemotron" in usage["model"]
+    assert "llama" in usage["model"] or "nemotron" in usage["model"] or "mistral" in usage["model"]
     assert uuid.UUID(doc_id)  # opaque UUID, never sequential
 
 
@@ -85,8 +85,8 @@ def test_admin_audit_trail(client):
 def test_per_model_prompt_rails():
     from app.services.llm.models import humanize_suffix
 
-    assert "20 words" in humanize_suffix("meta/llama-3.1-8b-instruct")
-    assert humanize_suffix("meta/llama-3.1-405b-instruct") == ""
+    assert "20 words" in humanize_suffix("mistralai/mistral-7b-instruct-v0.3")
+    assert humanize_suffix("mistralai/mistral-large-2-instruct") == ""
 
 
 def test_meta_detector_shape(client, auth_headers):

@@ -1,46 +1,38 @@
-"""NIM model catalog + validation. Defaults: 405b generate / 8b humanize.
+"""NIM model catalog + validation. Defaults: nemotron-70b generate / mistral-7b humanize.
 User overrides are validated against ALLOWED_MODELS (ARCHITECTURE.md v1.2)."""
 from app.core.config import get_settings
 
 CATALOG: list[dict] = [
     {
-        "id": "meta/llama-3.1-405b-instruct",
-        "label": "Llama 3.1 405B",
+        "id": "mistralai/mistral-large-2-instruct",
+        "label": "Mistral Large 2",
         "role": "generate",
         "context": 128000,
         "cost": "high",
         "max_tokens": 4000,
     },
     {
-        "id": "meta/llama-3.1-70b-instruct",
-        "label": "Llama 3.1 70B",
+        "id": "nvidia/llama-3.1-nemotron-70b-instruct",
+        "label": "Nemotron 70B",
         "role": "both",
         "context": 128000,
         "cost": "medium",
         "max_tokens": 4000,
     },
     {
-        "id": "meta/llama-3.1-8b-instruct",
-        "label": "Llama 3.1 8B",
+        "id": "mistralai/mistral-7b-instruct-v0.3",
+        "label": "Mistral 7B",
         "role": "humanize",
-        "context": 128000,
-        "cost": "low",
-        "max_tokens": 2000,
-    },
-    {
-        "id": "nvidia/llama-3.1-nemotron-nano-8b-v1",
-        "label": "Nemotron Nano 8B",
-        "role": "humanize",
-        "context": 128000,
+        "context": 32000,
         "cost": "low",
         "max_tokens": 2000,
     },
 ]
 
 GENERATE_FALLBACK_CHAIN = [
-    "meta/llama-3.1-405b-instruct",
-    "meta/llama-3.1-70b-instruct",
-    "meta/llama-3.1-8b-instruct",
+    "mistralai/mistral-large-2-instruct",
+    "nvidia/llama-3.1-nemotron-70b-instruct",
+    "mistralai/mistral-7b-instruct-v0.3",
 ]
 
 
@@ -107,8 +99,7 @@ def budget_for(model_id: str) -> int:
 
 # Small models follow instructions better with tighter style rails.
 HUMANIZE_SUFFIX: dict[str, str] = {
-    "meta/llama-3.1-8b-instruct": " Keep every sentence under 20 words.",
-    "nvidia/llama-3.1-nemotron-nano-8b-v1": " Keep every sentence under 20 words.",
+    "mistralai/mistral-7b-instruct-v0.3": " Keep every sentence under 20 words.",
 }
 
 
@@ -134,9 +125,9 @@ def auto_select_model(
     with reasons so the choice is inspectable (see auto-preview endpoint)."""
     if role == "humanize":
         if len(text) > 4000:
-            return ("meta/llama-3.1-70b-instruct",
+            return ("nvidia/llama-3.1-nemotron-70b-instruct",
                     [f"long section (~{len(text)} chars) needs the bigger humanizer"])
-        return ("meta/llama-3.1-8b-instruct",
+        return ("mistralai/mistral-7b-instruct-v0.3",
                 ["short section: cheapest capable humanizer"])
     score = 0
     reasons: list[str] = []
@@ -158,10 +149,10 @@ def auto_select_model(
         score += 1
         reasons.append("diagrams requested")
     if score >= 5:
-        return ("meta/llama-3.1-405b-instruct", reasons + ["high complexity: flagship writer"])
+        return ("mistralai/mistral-large-2-instruct", reasons + ["high complexity: flagship writer"])
     if score >= 3:
-        return ("meta/llama-3.1-70b-instruct", reasons + ["medium complexity: balanced writer"])
-    return ("meta/llama-3.1-8b-instruct", reasons + ["simple brief: cheapest capable writer"])
+        return ("nvidia/llama-3.1-nemotron-70b-instruct", reasons + ["medium complexity: balanced writer"])
+    return ("mistralai/mistral-7b-instruct-v0.3", reasons + ["simple brief: cheapest capable writer"])
 
 
 def live_model_ids() -> list[str] | None:

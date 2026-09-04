@@ -12,7 +12,7 @@ from app.core import error_codes as CODES
 from app.core.config import get_settings
 from app.core.messages import message_for
 from app.core.rate_limit import limiter
-from app.services.llm.nim_client import BudgetExceeded, ModelUnavailable
+from app.services.llm.nim_client import BudgetExceeded, ModelNotEntitled, ModelUnavailable
 from app.routes import (
     admin, auth, detect, documents, export, generate, humanize, meta,
     models, projects, rag, sections, templates,
@@ -41,6 +41,11 @@ async def budget_exceeded_handler(request: Request, exc: BudgetExceeded):
 @app.exception_handler(ModelUnavailable)
 async def model_unavailable_handler(request: Request, exc: ModelUnavailable):
     return _envelope(502, CODES.MODEL_UNAVAILABLE)
+
+
+@app.exception_handler(ModelNotEntitled)
+async def model_not_entitled_handler(request: Request, exc: ModelNotEntitled):
+    return _envelope(502, CODES.MODEL_NO_ACCESS)
 
 app.add_middleware(
     CORSMiddleware,

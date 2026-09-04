@@ -313,9 +313,9 @@ export default function ModelManager() {
                   type="button"
                   onClick={() => toggle(id)}
                   aria-label={`Remove ${id}`}
-                  className="shrink-0 rounded-full border border-transparent bg-[var(--accent)] px-4 py-2 text-xs font-bold text-white transition-colors hover:brightness-110"
+                  className="shrink-0 rounded-full border border-[var(--border)] px-4 py-2 text-xs font-bold text-[var(--ink)] transition-colors hover:border-red-400 hover:text-red-500"
                 >
-                  Added
+                  Remove
                 </button>
               </li>
             ))}

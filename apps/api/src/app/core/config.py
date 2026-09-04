@@ -23,8 +23,8 @@ class Settings(BaseSettings):
     DEFAULT_GENERATION_MODEL: str = "auto"
     DEFAULT_HUMANIZE_MODEL: str = "auto"
     ALLOWED_MODELS: str = (
-        "meta/llama-3.1-405b-instruct,meta/llama-3.1-70b-instruct,"
-        "meta/llama-3.1-8b-instruct,nvidia/llama-3.1-nemotron-nano-8b-v1"
+        "mistralai/mistral-large-2-instruct,nvidia/llama-3.1-nemotron-70b-instruct,"
+        "mistralai/mistral-7b-instruct-v0.3"
     )
     JWT_SECRET: str = "dev-only-change-me"
     JWT_EXPIRE_MIN: int = 60
@@ -45,7 +45,7 @@ class Settings(BaseSettings):
     LLM_KEYS_SECRET: str = ""
     LOG_LEVEL: str = "info"
     CORS_ORIGINS: str = "http://localhost:3000"
-    APP_VERSION: str = "1.15.0"
+    APP_VERSION: str = "1.16.0"
 
     @property
     def allowed_models(self) -> list[str]:

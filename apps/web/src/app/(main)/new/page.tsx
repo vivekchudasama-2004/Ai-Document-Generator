@@ -34,8 +34,9 @@ function Wizard() {
   const [failedCode, setFailedCode] = useState<string | undefined>(undefined);
   const [progress, setProgress] = useState<string[]>([]);
 
-  async function submit(e: React.FormEvent) {
-    e.preventDefault();
+  const FALLBACK_WRITER = "nvidia/llama-3.1-nemotron-70b-instruct";
+
+  async function run(generationOverride?: string) {
     const errs: typeof errors = {};
     if (!title.trim()) errs.title = "Give the document a title.";
     if (idea.trim().length < 4) errs.idea = "Describe the idea in a line or two.";
@@ -51,7 +52,7 @@ function Wizard() {
         "/api/generate/stream",
         {
           title, idea, doc_type: docType, tone, depth,
-          generation_model: models.generation || undefined,
+          generation_model: generationOverride ?? (models.generation || undefined),
           humanize_model: models.humanize || undefined,
         },
         (event, data) => {
@@ -67,6 +68,16 @@ function Wizard() {
       setFailedCode(err instanceof ApiError ? err.code : undefined);
       setBusy(false);
     }
+  }
+
+  function submit(e: React.FormEvent) {
+    e.preventDefault();
+    run();
+  }
+
+  function retryWith70b() {
+    setModels((m) => ({ ...m, generation: FALLBACK_WRITER }));
+    run(FALLBACK_WRITER);
   }
 
   return (
@@ -147,13 +158,30 @@ function Wizard() {
 
       {failed ? <Toast kind="error" message={failed} /> : null}
       {failedCode === "MODEL_UNAVAILABLE" ? (
-        <p className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 text-sm leading-relaxed text-[var(--muted)]" role="note">
-          The default writer is overloaded right now — your key itself works
-          (the model list loaded). Pick a specific writer above
-          (the 70b usually answers when 405b doesn&apos;t), or set{" "}
-          <span className="font-mono text-xs">NIM_MOCK=true</span> to test the
-          full flow offline.
-        </p>
+        <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 sm:p-5" role="note">
+          <p className="text-sm leading-relaxed text-[var(--muted)]">
+            The default writer is overloaded right now — your key itself works
+            (the model list loaded). The Nemotron 70B usually answers when the flagship doesn&apos;t.
+          </p>
+          <button
+            type="button"
+            onClick={retryWith70b}
+            disabled={busy}
+            className="btn-accent mt-3 px-5 py-2.5 text-sm font-semibold disabled:opacity-50"
+          >
+            Retry with Nemotron 70B
+          </button>
+        </div>
+      ) : null}
+      {failedCode === "MODEL_NO_ACCESS" ? (
+        <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 sm:p-5" role="note">
+          <p className="text-sm leading-relaxed text-[var(--muted)]">
+            No model answered — your NVIDIA key can list models but can&apos;t invoke
+            them (account not subscribed, or the ids retired). Accept the model terms
+            on your NVIDIA account, or open Manage models below and add your own
+            OpenRouter or Groq key instead.
+          </p>
+        </div>
       ) : null}
       {busy ? (
         <div className="space-y-2" aria-live="polite">

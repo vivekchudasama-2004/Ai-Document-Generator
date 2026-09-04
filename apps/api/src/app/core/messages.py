@@ -28,6 +28,7 @@ MESSAGES: dict[str, str] = {
     CODE.MODEL_EMPTY_RESPONSE: "The model returned nothing. Try again in a moment.",
     CODE.MODEL_TOO_LONG: "That request is too long for {model}. Shorten the idea and retry.",
     CODE.MODEL_UNAVAILABLE: "The writing service is busy. Your draft is safe — try again shortly.",
+    CODE.MODEL_NO_ACCESS: "No model answered — your key can't invoke these models (not subscribed, or the ids retired). Accept the model terms on your provider account, or add your own OpenRouter/Groq key in Manage models.",
     CODE.BYOK_INVALID: "That provider key can't be saved — check the provider, key, and URL, then try again.",
     CODE.BYOK_NOT_FOUND: "We couldn't find that saved key. It may have been deleted.",
     # --- platform ---

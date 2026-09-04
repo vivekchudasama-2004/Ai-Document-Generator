@@ -34,6 +34,18 @@ class ModelUnavailable(RuntimeError):
     """NIM failed after retries / no key and no mock. Maps to 502."""
 
 
+class ModelRefused(Exception):
+    """Provider answered 404/410: unknown, retired, or not entitled. No retry."""
+
+    def __init__(self, message: str, status: int):
+        super().__init__(message)
+        self.status = status
+
+
+class ModelNotEntitled(RuntimeError):
+    """Every candidate refused: key can't invoke anything. Maps to 502 + action."""
+
+
 async def _post(model: str, messages: list[dict], max_tokens: int,
                 transport: dict | None = None) -> str:
     """POST one chat completion. `transport` routes BYOK calls to the user's
@@ -62,6 +74,9 @@ async def _post(model: str, messages: list[dict], max_tokens: int,
                     last_exc = RuntimeError(f"LLM {resp.status_code}")
                     await asyncio.sleep(2**attempt)
                     continue
+                if resp.status_code in (404, 410):
+                    # Unknown / retired / not entitled — retrying is pointless.
+                    raise ModelRefused(f"LLM refused {model}: {resp.status_code}", resp.status_code)
                 resp.raise_for_status()
                 return resp.json()["choices"][0]["message"]["content"]
             except (httpx.TimeoutException, httpx.ConnectError) as exc:
@@ -108,7 +123,10 @@ async def chat_complete(
         )
 
     if transport is not None:
-        text = await _post(model, messages, budget_for(model), transport)
+        try:
+            text = await _post(model, messages, budget_for(model), transport)
+        except ModelRefused as exc:
+            raise ModelNotEntitled(f"Provider refused {model}: {exc}") from exc
         return model, text
 
     if settings.NIM_MOCK or not settings.NVIDIA_NIM_API_KEY:
@@ -126,12 +144,20 @@ async def chat_complete(
         filtered = [candidate for candidate in chain if candidate in reachable]
         chain = filtered or chain
     last_err: Exception | None = None
+    refused = 0
+    tried = 0
     for candidate in chain:
+        tried += 1
         try:
             text = await _post(candidate, messages, budget_for(candidate))
             if candidate != model:
                 log.warning("model.fallback from=%s to=%s", model, candidate)
             return candidate, text
+        except ModelRefused as exc:
+            refused += 1
+            last_err = exc
         except Exception as exc:  # noqa: BLE001 — chain continues
             last_err = exc
+    if tried and refused == tried:
+        raise ModelNotEntitled(f"No model answered — key lacks access or ids retired: {last_err}")
     raise ModelUnavailable(f"All generate models failed: {last_err}")

@@ -19,10 +19,9 @@ router = APIRouter(tags=["models"])
 def _describe(model_id: str) -> dict:
     """Catalog metadata for known ids; sensible fallback for the rest."""
     known = {
-        "meta/llama-3.1-405b-instruct": ("Llama 3.1 405B", "generate", "high"),
-        "meta/llama-3.1-70b-instruct": ("Llama 3.1 70B", "both", "medium"),
-        "meta/llama-3.1-8b-instruct": ("Llama 3.1 8B", "humanize", "low"),
-        "nvidia/llama-3.1-nemotron-nano-8b-v1": ("Nemotron Nano 8B", "humanize", "low"),
+        "mistralai/mistral-large-2-instruct": ("Mistral Large 2", "generate", "high"),
+        "nvidia/llama-3.1-nemotron-70b-instruct": ("Nemotron 70B", "both", "medium"),
+        "mistralai/mistral-7b-instruct-v0.3": ("Mistral 7B", "humanize", "low"),
     }
     if model_id in known:
         label, role, cost = known[model_id]

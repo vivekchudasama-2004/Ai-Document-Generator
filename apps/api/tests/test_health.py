@@ -3,7 +3,7 @@ def test_health_shape(client):
     assert resp.status_code == 200
     body = resp.json()
     assert body["status"] == "ok"
-    assert body["version"] == "1.15.0"
+    assert body["version"] == "1.16.0"
     assert "uptime" in body
     assert body["nimReady"] is True  # NIM_MOCK=true in tests
 
