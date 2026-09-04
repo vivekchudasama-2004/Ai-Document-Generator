@@ -58,7 +58,7 @@ export default function ExportsPage() {
                   <div>
                     <p className="font-semibold uppercase">{exportItem.format}</p>
                     <p className="text-sm text-[var(--muted)]">
-                      {exportItem.pages ? `${exportItem.pages} pages · ` : ""}
+                      {exportItem.pages ? `${exportItem.pages} pages, ` : ""}
                       {new Date(exportItem.created_at).toLocaleString()}
                     </p>
                   </div>

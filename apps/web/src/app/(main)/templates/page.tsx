@@ -18,27 +18,37 @@ export default function TemplatesPage() {
   }, []);
 
   if (error) return <Toast kind="error" message={error} />;
-  if (!items) return <div className="grid gap-4 md:grid-cols-3"><SectionSkeleton /><SectionSkeleton /><SectionSkeleton /></div>;
+  if (!items) return <div className="space-y-3"><SectionSkeleton /><SectionSkeleton /><SectionSkeleton /></div>;
 
   return (
     <div>
       <h1 className="font-display text-3xl font-bold">Templates</h1>
-      <p className="mt-1 text-[var(--muted)]">Twelve document types. Three tuned for the MVP — the rest work today, refined next.</p>
-      <div className="mt-6 grid gap-4 md:grid-cols-3">
+      <p className="mt-1 text-[var(--muted)]">Twelve document types. Three tuned for the MVP, the rest work today.</p>
+      <ul className="mt-6 divide-y divide-[var(--border)] border-y border-[var(--border)]">
         {items.map((t) => (
-          <article key={t.type} className="paper-card flex flex-col p-5">
-            <div className="flex items-center justify-between gap-2">
-              <h2 className="font-display text-lg font-bold">{t.title}</h2>
-              {t.mvp ? <span className="bg-good-tint rounded-full px-2.5 py-1 text-xs font-semibold text-[var(--good)]">MVP</span> : null}
+          <li key={t.type} className="flex flex-col gap-2 py-5 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
+            <div className="min-w-0">
+              <p className="flex flex-wrap items-center gap-2 font-semibold">
+                {t.title}
+                {t.mvp ? (
+                  <span className="bg-good-tint rounded-full px-2.5 py-0.5 text-xs font-semibold text-[var(--good)]">
+                    Tuned
+                  </span>
+                ) : null}
+              </p>
+              <p className="mt-1 max-w-[62ch] text-sm leading-relaxed text-[var(--muted)]">{t.description}</p>
+              <p className="mt-1 font-mono text-xs text-[var(--muted)]">{t.sections.length} sections</p>
             </div>
-            <p className="mt-1 text-sm text-[var(--muted)]">{t.description}</p>
-            <p className="mt-3 text-xs text-[var(--muted)]">{t.sections.length} sections</p>
-            <Link href={`/new?type=${t.type}`} className="btn-ghost mt-4 px-4 py-2 text-center text-sm font-semibold">
+            <Link
+              href={`/new?type=${t.type}`}
+              className="btn-ghost shrink-0 px-5 py-2 text-sm font-semibold"
+              aria-label={`Start a ${t.title} document`}
+            >
               Use template
             </Link>
-          </article>
+          </li>
         ))}
-      </div>
+      </ul>
     </div>
   );
 }

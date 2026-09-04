@@ -48,7 +48,7 @@ export default function AdminPage() {
       <section className="paper-card mt-6 p-5">
         <h2 className="font-display text-lg font-bold">Usage</h2>
         <p className="mt-2 text-sm text-[var(--muted)]">
-          {String(stats.users)} users · {String(stats.docs)} documents
+          {String(stats.users)} users, {String(stats.docs)} documents
         </p>
       </section>
       <section className="paper-card mt-4 p-5">
@@ -60,7 +60,7 @@ export default function AdminPage() {
             <li key={u.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
               <div className="min-w-0">
                 <p className="font-semibold">{u.display_name ?? u.email}</p>
-                <p className="break-all font-mono text-xs text-[var(--muted)]">{u.email} · {u.role}</p>
+                <p className="break-all font-mono text-xs text-[var(--muted)]">{u.email}, {u.role}</p>
               </div>
               <select aria-label={`Role for ${u.email}`} className="field max-w-40" value={u.role}
                 onChange={(e) => setRole(u.id, e.target.value)}>

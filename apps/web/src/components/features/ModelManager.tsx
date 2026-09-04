@@ -100,7 +100,7 @@ export default function ModelManager() {
                 <div className="min-w-0">
                   <p className="truncate font-mono text-xs font-semibold">{model.id}</p>
                   <p className="text-xs text-[var(--muted)]">
-                    {model.label} · {model.role} · {model.cost}
+                    {model.label}, {model.role}, {model.cost}
                   </p>
                 </div>
                 <button

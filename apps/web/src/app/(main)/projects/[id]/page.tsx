@@ -32,7 +32,7 @@ export default function ProjectDetail({ params }: { params: Promise<{ id: string
           <li key={d.id}>
             <Link href={`/studio/${d.id}`} className="rowlink flex items-center justify-between px-5 py-4">
               <span className="font-semibold">{d.title}</span>
-              <span className="text-sm text-[var(--muted)]">{d.type} · {d.status}</span>
+              <span className="text-sm text-[var(--muted)]">{d.type}, {d.status}</span>
             </Link>
           </li>
         ))}

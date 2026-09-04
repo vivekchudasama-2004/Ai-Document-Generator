@@ -5,7 +5,6 @@ import { useCallback, useEffect, useState } from "react";
 import { api } from "@/lib/api/client";
 import { PageHeader, ListShell } from "@/components/ui/PageShell";
 import RefreshButton from "@/components/ui/RefreshButton";
-import StatCard from "@/components/ui/StatCard";
 import ErrorBoundary from "@/components/ui/ErrorBoundary";
 
 type Project = { id: string; title: string; slug: string; docCount: number };
@@ -36,6 +35,12 @@ export default function Dashboard() {
     loadDashboard();
   }, [loadDashboard]);
 
+  const figures: [string, number, string][] = [
+    ["Projects", projects?.length ?? 0, "/projects"],
+    ["Documents", stats?.docs ?? 0, "/projects"],
+    ["Exports", stats?.exports ?? 0, "/exports"],
+  ];
+
   return (
     <div>
       <PageHeader
@@ -44,23 +49,28 @@ export default function Dashboard() {
           <>
             <RefreshButton onRefresh={loadDashboard} />
             <Link href="/new" className="btn-accent px-5 py-2.5 text-sm font-semibold">
-              + New document
+              New document
             </Link>
           </>
         }
       />
 
-      {stats ? (
-        <ErrorBoundary label="workspace stats">
-          <div className="mt-6 grid gap-4 sm:grid-cols-3" aria-label="Workspace stats">
-          <StatCard label="Projects" value={projects?.length ?? 0} href="/projects" />
-          <StatCard label="Documents" value={stats.docs} href="/projects" />
-          <StatCard label="Exports" value={stats.exports} href="/exports" />
+      <ErrorBoundary label="workspace stats">
+        <div
+          className="mt-6 flex divide-x divide-[var(--border)] border-y border-[var(--border)]"
+          aria-label="Workspace stats"
+        >
+          {figures.map(([label, value, href]) => (
+            <Link key={label} href={href} className="rowlink min-w-0 flex-1 px-4 py-4 first:pl-0 sm:px-6">
+              <p className="font-display text-3xl font-bold leading-none">{value}</p>
+              <p className="mt-1 text-sm text-[var(--muted)]">{label}</p>
+            </Link>
+          ))}
         </div>
-        </ErrorBoundary>
-      ) : null}
+      </ErrorBoundary>
 
-      <div className="mt-6">
+      <h2 className="font-display mt-8 text-xl font-bold">Recent projects</h2>
+      <div className="mt-3">
         <ErrorBoundary label="project list">
         <ListShell
           items={projects}
@@ -75,20 +85,21 @@ export default function Dashboard() {
           }
         >
           {(loadedProjects) => (
-            <div className="grid gap-4 md:grid-cols-3">
+            <ul className="divide-y divide-[var(--border)] border-y border-[var(--border)]">
               {loadedProjects.map((project) => (
-                <Link
-                  key={project.id}
-                  href={`/projects/${project.id}`}
-                  className="paper-card rowlink lift block p-5"
-                >
-                  <h2 className="font-display text-xl font-bold">{project.title}</h2>
-                  <p className="mt-1 text-sm text-[var(--muted)]">
-                    {project.docCount} document{project.docCount === 1 ? "" : "s"}
-                  </p>
-                </Link>
+                <li key={project.id}>
+                  <Link
+                    href={`/projects/${project.id}`}
+                    className="rowlink flex items-center justify-between gap-3 py-4"
+                  >
+                    <span className="min-w-0 truncate font-semibold">{project.title}</span>
+                    <span className="shrink-0 text-sm text-[var(--muted)]">
+                      {project.docCount} document{project.docCount === 1 ? "" : "s"}
+                    </span>
+                  </Link>
+                </li>
               ))}
-            </div>
+            </ul>
           )}
         </ListShell>
         </ErrorBoundary>

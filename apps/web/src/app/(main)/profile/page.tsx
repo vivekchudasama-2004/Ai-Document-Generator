@@ -69,56 +69,49 @@ export default function ProfilePage() {
   return (
     <div className="max-w-2xl">
       <h1 className="font-display text-3xl font-bold">Profile</h1>
-      <p className="mt-1 text-[var(--muted)]">Your account, in one place.</p>
+      <p className="mt-1 text-[var(--muted)]">
+        Signed in as <span className="font-mono text-xs">{user.email}</span>, {user.role} account.
+      </p>
       <ErrorBoundary label="profile">
-        <section className="paper-card mt-6 p-5 sm:p-6">
-          <h2 className="font-display text-lg font-bold">Account</h2>
-          <dl className="mt-3 space-y-2 text-sm">
-            <div className="flex justify-between gap-3">
-              <dt className="text-[var(--muted)]">Email</dt>
-              <dd className="min-w-0 break-all font-mono text-xs">{user.email}</dd>
-            </div>
-            <div className="flex justify-between gap-3">
-              <dt className="text-[var(--muted)]">Role</dt>
-              <dd className="font-semibold capitalize">{user.role}</dd>
-            </div>
-          </dl>
-        </section>
-        <section className="paper-card mt-4 p-5 sm:p-6">
-          <h2 className="font-display text-lg font-bold">Display name</h2>
-          <form onSubmit={saveName} className="mt-3 flex flex-col gap-3 sm:flex-row">
-            <input
-              className="field flex-1"
-              value={displayName}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="What should we call you?"
-              aria-label="Display name"
-              maxLength={100}
-            />
-            <button className="btn-accent px-6 font-semibold" disabled={busy}>
-              Save
-            </button>
-          </form>
-          <FieldError message={nameError} />
-        </section>
-        <section className="paper-card mt-4 p-5 sm:p-6">
-          <h2 className="font-display text-lg font-bold">Change password</h2>
-          <form onSubmit={savePassword} className="mt-3 space-y-3">
-            <div>
-              <label className="text-sm font-semibold" htmlFor="current">Current password</label>
-              <input id="current" type="password" autoComplete="current-password"
-                className="field mt-1" value={current} onChange={(e) => setCurrent(e.target.value)} />
-            </div>
-            <div>
-              <label className="text-sm font-semibold" htmlFor="next">New password</label>
-              <input id="next" type="password" autoComplete="new-password"
-                className="field mt-1" value={next} onChange={(e) => setNext(e.target.value)} />
-            </div>
-            <button className="btn-ghost w-full font-semibold sm:w-auto sm:px-6" disabled={busy}>
-              Change password
-            </button>
-          </form>
-        </section>
+        <div className="paper-card mt-6 divide-y divide-[var(--border)] p-5 sm:p-6">
+          <section className="pb-6" aria-labelledby="name-h">
+            <h2 id="name-h" className="text-base font-semibold">Display name</h2>
+            <form onSubmit={saveName} className="mt-3 flex flex-col gap-3 sm:flex-row">
+              <input
+                className="field flex-1"
+                value={displayName}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="What should we call you?"
+                aria-label="Display name"
+                maxLength={100}
+              />
+              <button className="btn-accent px-6 font-semibold" disabled={busy}>
+                Save name
+              </button>
+            </form>
+            <FieldError message={nameError} />
+          </section>
+          <section className="pt-6" aria-labelledby="pw-h">
+            <h2 id="pw-h" className="text-base font-semibold">Change password</h2>
+            <form onSubmit={savePassword} className="mt-3 grid gap-3 sm:grid-cols-2">
+              <div>
+                <label className="text-sm font-semibold" htmlFor="current">Current password</label>
+                <input id="current" type="password" autoComplete="current-password"
+                  className="field mt-1" value={current} onChange={(e) => setCurrent(e.target.value)} />
+              </div>
+              <div>
+                <label className="text-sm font-semibold" htmlFor="next">New password</label>
+                <input id="next" type="password" autoComplete="new-password"
+                  className="field mt-1" value={next} onChange={(e) => setNext(e.target.value)} />
+              </div>
+              <div className="sm:col-span-2">
+                <button className="btn-ghost w-full font-semibold sm:w-auto sm:px-6" disabled={busy}>
+                  Change password
+                </button>
+              </div>
+            </form>
+          </section>
+        </div>
         {notice ? <div className="mt-4"><Toast kind="success" message={notice} /></div> : null}
         {failed ? <div className="mt-4"><Toast kind="error" message={failed} /></div> : null}
       </ErrorBoundary>

@@ -105,7 +105,7 @@ export default function ModelSelector({
         <option value={AUTO_VALUE}>Auto (recommended)</option>
         {options.map((model) => (
           <option key={model.id} value={model.id}>
-            {model.label} · {model.cost}
+            {model.label}, {model.cost}
           </option>
         ))}
       </select>

@@ -185,7 +185,7 @@ export default function StudioPage({ params }: { params: Promise<{ id: string }>
         <div>
           <h1 className="font-display text-3xl font-bold">{document.title}</h1>
           <p className="text-sm text-[var(--muted)]">
-            {document.type} · {document.status} · {document.humanize_model}
+            {document.type}, {document.status}, {document.humanize_model}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -214,17 +214,19 @@ export default function StudioPage({ params }: { params: Promise<{ id: string }>
       ) : null}
 
       <div className="mt-6 grid gap-6 lg:grid-cols-[220px_minmax(0,1fr)_240px]">
-        <nav aria-label="Outline" className="paper-card h-fit p-3 lg:sticky lg:top-6">
+        <nav aria-label="Outline" className="h-fit lg:sticky lg:top-6">
+          <div className="flex gap-2 overflow-x-auto pb-1 lg:grid lg:grid-cols-1 lg:overflow-visible lg:rounded-2xl lg:border lg:border-[var(--border)] lg:bg-[var(--surface)] lg:p-3">
           {document.sections.map((section) => (
             <a
               key={section.id}
               href={`#sec-${section.id}`}
-              className="rowlink flex items-center justify-between gap-2 rounded-lg px-2 py-2 text-sm"
+              className="rowlink flex shrink-0 items-center justify-between gap-2 rounded-full border border-[var(--border)] px-3 py-2 text-sm lg:rounded-lg lg:border-0"
             >
-              <span className="truncate font-medium">{section.title}</span>
+              <span className="max-w-32 truncate font-medium sm:max-w-none">{section.title}</span>
               <ScoreRing value={section.human_score} size={30} />
             </a>
           ))}
+          </div>
           <button
             className="btn-accent mt-3 w-full py-2 text-sm font-semibold"
             disabled={busySectionId !== null}
