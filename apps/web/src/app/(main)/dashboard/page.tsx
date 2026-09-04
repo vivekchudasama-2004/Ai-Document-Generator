@@ -48,7 +48,8 @@ export default function Dashboard() {
         actions={
           <>
             <RefreshButton onRefresh={loadDashboard} />
-            <Link href="/new" className="btn-accent px-5 py-2.5 text-sm font-semibold">
+            <Link href="/new" className="btn-accent inline-flex items-center px-5 py-2.5 text-sm font-semibold">
+              <span className="mr-1 inline-block text-base font-bold leading-none" aria-hidden>+</span>
               New document
             </Link>
           </>

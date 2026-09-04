@@ -13,7 +13,7 @@ const config: Config = {
       },
       borderRadius: { xl2: "var(--radius)" },
       fontFamily: {
-        display: ["var(--font-body)", "Roboto", "system-ui", "sans-serif"],
+        display: ["var(--font-display)", "Space Grotesk", "Roboto", "system-ui", "sans-serif"],
         body: ["var(--font-body)", "Roboto", "system-ui", "sans-serif"],
         mono: ["var(--font-mono)", "JetBrains Mono", "monospace"],
       },

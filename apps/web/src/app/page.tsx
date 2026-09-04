@@ -75,7 +75,7 @@ export default function Landing() {
           <p className="text-sm font-semibold text-[var(--accent-ink)]">
             Generate, detect, humanize
           </p>
-          <h1 className="font-display mt-3 text-balance text-[2.5rem] font-bold leading-[1.08] sm:text-5xl">
+          <h1 className="font-display mt-3 text-balance text-[2.75rem] font-bold leading-[1.02] sm:text-6xl md:text-[4.25rem]">
             Idea in. Human-feeling document out.
           </h1>
           <p className="mt-4 max-w-xl text-pretty text-base leading-relaxed text-[var(--muted)]">
@@ -84,6 +84,10 @@ export default function Landing() {
           </p>
           <div className="mt-7 flex flex-col gap-3 sm:flex-row">
             <Link href="/signup" className="btn-accent justify-center px-7 py-3 font-semibold">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                <path d="M12 20h9" />
+                <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
+              </svg>
               Draft your first doc
             </Link>
             <Link href="/login" className="btn-ghost justify-center px-7 py-3 font-semibold">
@@ -105,27 +109,30 @@ export default function Landing() {
           </dl>
         </div>
 
-        {/* The one bold moment: the loop, as a tonal panel. */}
+        {/* The one bold moment: the loop as an inverse panel with oversized numerals. */}
         <figure
-          className="rounded-2xl bg-[var(--accent-container)] p-6 text-[var(--on-accent-container)]"
+          className="panel-ink p-6 sm:p-8"
           aria-label="One section improving from 72 to 98 percent human across two passes"
         >
-          <figcaption className="text-sm font-semibold">One section, two passes</figcaption>
-          <div className="mt-4 flex min-w-0 items-center gap-4">
-            <ScoreRing value={72} size={64} />
+          <figcaption className="text-sm font-semibold opacity-80">One section, two passes</figcaption>
+          <p className="font-display mt-2 text-6xl font-bold leading-none sm:text-7xl" aria-hidden>
+            72<span className="opacity-40">→</span>98
+          </p>
+          <div className="mt-5 flex min-w-0 items-center gap-4">
+            <ScoreRing value={72} size={56} />
             <div className="min-w-0 flex-1 space-y-2" aria-hidden>
               {[["Rhythm", "92%"], ["Voice", "88%"], ["Diction", "95%"]].map(([label, width]) => (
                 <div key={label} className="flex min-w-0 items-center gap-3">
-                  <span className="w-16 shrink-0 font-mono text-[11px] opacity-80">{label}</span>
+                  <span className="w-16 shrink-0 font-mono text-[11px] opacity-70">{label}</span>
                   <div className="meter min-w-0 flex-1">
                     <span style={{ width }} />
                   </div>
                 </div>
               ))}
             </div>
-            <ScoreRing value={98} size={64} />
+            <ScoreRing value={98} size={56} />
           </div>
-          <p className="mt-4 text-sm opacity-80">
+          <p className="mt-4 text-sm opacity-70">
             Draft, score, rewrite. Only improvements are kept, each with a diff.
           </p>
         </figure>
